@@ -19,7 +19,7 @@ loaded_model = mlflow.pyfunc.load_model(model_info.model_uri)
 
 result = loaded_model.predict(
     data={
-        "messages": [{"role": "user", "content": "What is MLflow?"}],
+        "messages": [{"role": "user", "content": "How to trace Mistral in MLflow?"}],
         "max_tokens": 25,
     }
 )
