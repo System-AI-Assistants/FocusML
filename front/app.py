@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 
 import ollama
@@ -44,26 +45,37 @@ def fetch_base_models():
 
 def fetch_model_tags(base_model):
     """
-    Fetches and filters specific, optimized tags for a given base model.
+    Fetches and cleans all available tags for a given base model from Ollama.
+    Removes HTML, strips whitespace, and deduplicates tags.
     """
     if not base_model:
         return []
+
     try:
-        # Command to get and filter tags for the selected model
-        # The filter removes generic tags, text-only, and certain quantization levels to get good performance models.
-        # s https://ollama.com/library/{base_model}/tags
         command = f"""
         curl -s https://ollama.com/library/{base_model}/tags | \
-        grep -o '{base_model}:[^" ]*q[^" ]*' | \
-        grep -E -v 'text|base|fp|q[45]_[01]'
+        grep -o '{base_model}:[^" <]*'
         """
         result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
-        tags = sorted(list(set(result.stdout.strip().split('\n'))))
-        return tags if tags else [f"{base_model}:latest"]  # Fallback to latest if filter is too aggressive
+
+        raw_lines = result.stdout.strip().split('\n')
+
+        # Clean and deduplicate tags
+        cleaned_tags = set()
+        for line in raw_lines:
+            # Remove HTML tags (if any accidentally included)
+            tag = re.sub(r'<.*?>', '', line)
+            tag = tag.strip()
+            if tag:
+                cleaned_tags.add(tag)
+
+        # Sort the result
+        return sorted(cleaned_tags) if cleaned_tags else [f"{base_model}:latest"]
+
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         st.error(f"Could not fetch tags for '{base_model}'. Error: {e}. You may need to select another model.",
                  icon="🚨")
-        return [f"{base_model}:latest"]  # Provide a sensible default
+        return [f"{base_model}:latest"]
 
 
 def get_available_models():
@@ -284,8 +296,8 @@ def handle_file_upload():
 
 def main():
     """Main function to run the Streamlit app."""
-    st.set_page_config(page_title="Universal ML Chat", layout="centered")
-    st.title("Universal ML Chat 💬")
+    st.set_page_config(page_title="MLOps Chat", layout="centered")
+    st.title("MLOps Chat 💬")
     initialize_session_state()
 
     for msg in st.session_state.messages:
