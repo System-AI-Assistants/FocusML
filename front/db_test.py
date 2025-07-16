@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 DATABASE_URL = "postgresql://amazon:RYPrai7wBbDeQJ3J@212.6.44.122:5432/amazon"
 
 
+
 def test_db_connection():
     try:
         engine = create_engine(DATABASE_URL)
