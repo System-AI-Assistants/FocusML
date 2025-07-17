@@ -1,50 +1,207 @@
-.App {
-  text-align: center;
+/* Modern MLOps Platform - Blockchain.com inspired design */
+
+* {
+  box-sizing: border-box;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-/* Custom Ant Design styling for MLOps Platform */
 body {
-  background: #f0f2f5;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #f8f9fa;
+  color: #1a1a1a;
 }
+
+/* Layout Overrides */
 .ant-layout {
-  min-height: 100vh;
+  background: #f8f9fa !important;
 }
+
+.ant-layout-sider {
+  background: #ffffff !important;
+  border-right: 1px solid #e6e8ea;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+}
+
 .ant-layout-header {
-  background: #001529;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e6e8ea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 0 24px;
+  height: 64px;
+  line-height: 64px;
 }
+
 .ant-layout-content {
-  background: #fff;
-  margin: 24px 16px 0;
-  padding: 24px;
-  min-height: 280px;
-  box-shadow: 0 2px 8px #f0f1f2;
+  background: transparent !important;
+  padding: 0;
+  margin: 0;
+}
+
+/* Sidebar Styling */
+.ant-menu {
+  background: transparent !important;
+  border: none !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ant-menu-item {
+  margin: 4px 12px !important;
+  border-radius: 8px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  padding-left: 16px !important;
+}
+
+.ant-menu-item:hover {
+  background: #f0f2f5 !important;
+  color: #1890ff !important;
+}
+
+.ant-menu-item-selected {
+  background: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
+.ant-menu-item-selected::after {
+  display: none;
+}
+
+/* Card Styling */
+.modern-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e6e8ea;
+  transition: all 0.3s ease;
+}
+
+.modern-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Typography */
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+/* Button Styling */
+.ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+}
+
+.ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+}
+
+/* Table Styling */
+.ant-table {
+  background: transparent;
+}
+
+.ant-table-thead > tr > th {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e6e8ea;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f0f2f5;
+  padding: 16px;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f8f9fa;
+}
+
+/* Search Input */
+.ant-input-search {
   border-radius: 8px;
 }
-.ant-layout-footer {
-  text-align: center;
-  background: #f0f2f5;
-  color: #888;
+
+.ant-input-search .ant-input {
+  border-radius: 8px;
+  border-color: #e6e8ea;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.ant-input-search .ant-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Avatar and User Info */
+.user-info {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-info:hover {
+  background: #f0f2f5;
+}
+
+/* Status indicators */
+.status-active {
+  color: #52c41a;
+}
+
+.status-warning {
+  color: #faad14;
+}
+
+.status-error {
+  color: #ff4d4f;
+}
+
+.status-info {
+  color: #1890ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    position: fixed;
+    height: 100vh;
+    z-index: 1000;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .page-title {
+    font-size: 24px;
   }
 }
