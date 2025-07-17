@@ -25,15 +25,15 @@ function App() {
 
   return (
     <Router>
-      <Layout style={{ minHeight: '100vh', background: '#f4f6f8' }}>
+      <Layout style={{ minHeight: '100vh' }}>
         <Sidebar />
-        <Layout>
+        <Layout className="site-layout">
           <HeaderBar />
-          <Content style={{ margin: 0, minHeight: 280, background: 'transparent' }}>
+          <Content>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<UserManagement />} />
-              {/* Add more routes here as you build more pages */}
+              {/* Add other routes for experiments, models, etc. here */}
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Content>

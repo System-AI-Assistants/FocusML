@@ -1,28 +1,32 @@
 import React from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Divider, Typography } from 'antd';
+import { Link, useLocation } from 'react-router-dom';
 import {
   HomeOutlined,
   ExperimentOutlined,
   AppstoreOutlined,
+  BarChartOutlined,
   BellOutlined,
   UserOutlined,
-  BarChartOutlined,
+  CodeSandboxOutlined
 } from '@ant-design/icons';
-import { Link, useLocation } from 'react-router-dom';
 
 const { Sider } = Layout;
+const { Title, Text } = Typography;
 
 const Sidebar = () => {
   const location = useLocation();
+
   return (
-    <Sider width={220} style={{ background: '#fff', boxShadow: '2px 0 8px #f0f1f2' }}>
-      <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 22, letterSpacing: 1, color: '#1a1a1a' }}>
-        MLOps Platform
+    <Sider width={240} className="modern-sidebar">
+      <div className="logo-container">
+        <CodeSandboxOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
+        <Title level={4} style={{ margin: 0, marginLeft: '12px', color: '#1a1a1a' }}>MLOps</Title>
       </div>
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        style={{ height: '100%', borderRight: 0, fontSize: 16 }}
+        className="modern-menu"
       >
         <Menu.Item key="/" icon={<HomeOutlined />}>
           <Link to="/">Dashboard</Link>
@@ -43,6 +47,11 @@ const Sidebar = () => {
           <Link to="/users">User Management</Link>
         </Menu.Item>
       </Menu>
+      <Divider style={{ margin: '16px 0' }} />
+      <div className="workspace-info">
+        <Text style={{ fontWeight: 600, color: '#1a1a1a' }}>Workspace</Text>
+        <Text type="secondary">Personal</Text>
+      </div>
     </Sider>
   );
 };

@@ -1,63 +1,122 @@
-import React from 'react';
-import { Card, Button, Table, Modal, Form, Input, message, Typography } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Card, Table, Button, Modal, Form, Input, Space, Typography, Tag, Avatar } from 'antd';
+import { PlusOutlined, DeleteOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 
-const UserManagement = () => {
-  const [users, setUsers] = React.useState([
-    { key: '1', username: 'alice', email: 'alice@example.com' },
-    { key: '2', username: 'bob', email: 'bob@example.com' },
-  ]);
-  const [isModalVisible, setIsModalVisible] = React.useState(false);
+const initialUsers = [
+  { key: '1', name: 'John Doe', email: 'john.doe@example.com', role: 'Admin', status: 'active' },
+  { key: '2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Developer', status: 'active' },
+  { key: '3', name: 'Sam Wilson', email: 'sam.wilson@example.com', role: 'Viewer', status: 'inactive' },
+];
+
+function UserManagement() {
+  const [users, setUsers] = useState(initialUsers);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  const handleAddUser = (values) => {
-    setUsers([...users, { key: Date.now().toString(), ...values }]);
-    setIsModalVisible(false);
-    form.resetFields();
-    message.success('User added (mock)');
+  const showModal = () => {
+    setIsModalVisible(true);
   };
 
-  const handleDeleteUser = (key) => {
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    form.resetFields();
+  };
+
+  const handleAddUser = (values) => {
+    const newUser = { ...values, key: String(users.length + 1), status: 'active' };
+    setUsers([...users, newUser]);
+    handleCancel();
+  };
+
+  const handleDelete = (key) => {
     setUsers(users.filter(user => user.key !== key));
-    message.success('User deleted (mock)');
   };
 
   const columns = [
-    { title: 'Username', dataIndex: 'username', key: 'username' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name, record) => (
+        <Space>
+          <Avatar icon={<UserOutlined />} />
+          <div>
+            <div style={{ fontWeight: 500 }}>{name}</div>
+            <div style={{ color: '#8c8c8c' }}>{record.email}</div>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      render: role => {
+        let color = 'default';
+        if (role === 'Admin') color = 'volcano';
+        if (role === 'Developer') color = 'geekblue';
+        return <Tag color={color}>{role}</Tag>;
+      },
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: status => (
+        <Tag color={status === 'active' ? 'green' : 'red'}>{status.toUpperCase()}</Tag>
+      ),
+    },
     {
       title: 'Action',
       key: 'action',
       render: (_, record) => (
-        <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteUser(record.key)}>
-          Delete
-        </Button>
+        <Space>
+          <Button icon={<EditOutlined />} />
+          <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.key)} />
+        </Space>
       ),
     },
   ];
 
   return (
-    <Card style={{ borderRadius: 16, boxShadow: '0 2px 16px #e6e6e6', margin: 32 }}>
-      <Title level={3} style={{ marginBottom: 24 }}>User Management</Title>
-      <Button type="primary" icon={<PlusOutlined />} style={{ marginBottom: 16 }} onClick={() => setIsModalVisible(true)}>
-        Add User
-      </Button>
-      <Table columns={columns} dataSource={users} pagination={false} style={{ background: 'white', borderRadius: 8 }} />
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <Title level={2} style={{ margin: 0 }}>User Management</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>Add User</Button>
+      </div>
+      <Card className="modern-card">
+        <Table dataSource={users} columns={columns} pagination={{ pageSize: 10 }} rowKey="key" />
+      </Card>
+
       <Modal
-        title="Add User"
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        onOk={() => form.submit()}
+        title="Add New User"
+        visible={isModalVisible}
+        onCancel={handleCancel}
+        footer={null}
+        width={400}
       >
-        <Form form={form} layout="vertical" onFinish={handleAddUser}>
-          <Form.Item name="username" label="Username" rules={[{ required: true }]}> <Input /> </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}> <Input /> </Form.Item>
+        <Form form={form} onFinish={handleAddUser} layout="vertical" style={{ marginTop: '24px' }}>
+          <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
+            <Input placeholder="e.g. John Doe" />
+          </Form.Item>
+          <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email' }]}>
+            <Input placeholder="e.g. john.doe@example.com" />
+          </Form.Item>
+          <Form.Item name="role" label="Role" rules={[{ required: true }]}>
+            <Input placeholder="e.g. Developer" />
+          </Form.Item>
+          <Form.Item style={{ textAlign: 'right', marginTop: '24px' }}>
+            <Space>
+              <Button onClick={handleCancel}>Cancel</Button>
+              <Button type="primary" htmlType="submit">Create User</Button>
+            </Space>
+          </Form.Item>
         </Form>
       </Modal>
-    </Card>
+    </div>
   );
-};
+}
 
 export default UserManagement;

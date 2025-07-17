@@ -1,30 +1,47 @@
 import React from 'react';
-import { Layout, Input, Avatar, Dropdown, Menu, Button } from 'antd';
-import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import { Layout, Input, Avatar, Dropdown, Menu, Space, Typography } from 'antd';
+import { UserOutlined, LogoutOutlined, SettingOutlined, SearchOutlined } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';
 
 const { Header } = Layout;
+const { Text } = Typography;
 
 const HeaderBar = () => {
   const { keycloak } = useKeycloak();
 
+  const handleLogout = () => {
+    keycloak.logout();
+  };
+
   const menu = (
     <Menu>
-      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={() => keycloak.logout()}>Logout</Menu.Item>
+      <Menu.Item key="profile" icon={<UserOutlined />}>
+        Profile
+      </Menu.Item>
+      <Menu.Item key="settings" icon={<SettingOutlined />}>
+        Settings
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
+        Logout
+      </Menu.Item>
     </Menu>
   );
 
   return (
-    <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64, boxShadow: '0 2px 8px #f0f1f2' }}>
-      <Input.Search
-        placeholder="Search..."
-        style={{ width: 320, borderRadius: 8 }}
-        allowClear
+    <Header className="modern-header">
+      <Input
+        placeholder="Search transactions, models, etc..."
+        prefix={<SearchOutlined style={{ color: '#adb5bd' }} />}
+        className="modern-search"
       />
       <Dropdown overlay={menu} placement="bottomRight" trigger={['click']}>
-        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-          <Avatar style={{ backgroundColor: '#1890ff', marginRight: 12 }} icon={<UserOutlined />} />
-          <span style={{ fontWeight: 500, color: '#222' }}>{keycloak.tokenParsed?.preferred_username || 'User'}</span>
+        <div className="user-info-container">
+          <Avatar size="large" icon={<UserOutlined />} className="user-avatar" />
+          <div className="user-details">
+            <Text style={{ fontWeight: 600, color: '#212529' }}>{keycloak.tokenParsed?.name || 'Adam'}</Text>
+            <Text type="secondary">{keycloak.tokenParsed?.email || 'adam@example.com'}</Text>
+          </div>
         </div>
       </Dropdown>
     </Header>
