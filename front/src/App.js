@@ -17,10 +17,9 @@ function App() {
     return <div>Loading...</div>;
   }
 
-  if (!keycloak?.authenticated) {
-    return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f4f6f8' }}>
-      <button className="ant-btn ant-btn-primary" onClick={() => keycloak.login()}>Login with Keycloak</button>
-    </div>;
+  if (!keycloak.authenticated) {
+    keycloak.login();
+    return <div>Redirecting to login...</div>;
   }
 
   return (
