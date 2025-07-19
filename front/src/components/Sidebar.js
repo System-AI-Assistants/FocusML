@@ -98,8 +98,6 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       style={{
         minHeight: '100vh',
         background: '#fff',
-
-        borderRight: '1px solid #f0f0f0',
         transition: 'all 0.2s',
         zIndex: 100,
       }}

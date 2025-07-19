@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import './UserManagement.css';
 import { Card, Table, Button, Modal, Form, Input, Space, Typography, Tag, Avatar, message } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';
@@ -119,8 +120,8 @@ function UserManagement() {
   ];
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+    <div className="user-page-container">
+      <div className="user-page-header">
         <Title level={2} style={{ margin: 0 }}>User Management</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>Add User</Button>
       </div>
