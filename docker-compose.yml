@@ -2,18 +2,18 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:13
-    container_name: mlops_postgres
+    image: postgres:17.5
+    container_name: postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql17_5/data
     env_file:
       - ./.env.db
     networks:
       - mlops_network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:18.0
-    container_name: mlops_keycloak
+    image: quay.io/keycloak/keycloak:26.3.0
+    container_name: keycloak
     command: ["start-dev"]
     env_file:
       - ./.env.keycloak
@@ -28,7 +28,7 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: mlops_backend
+    container_name: backend
     env_file:
       - ./api/.env
     ports:
@@ -42,7 +42,7 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
-    container_name: mlops_frontend
+    container_name: frontend
     ports:
       - "3000:80"
     depends_on:
