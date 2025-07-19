@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+.sidebar-container {
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e6e6e6;
+  transition: width 0.2s ease;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+}
+
+.sidebar-logo .app-name {
+  margin-left: 12px;
+  color: #1f1f1f;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-menu {
+  border-right: none;
+  padding: 16px 0;
+  background: transparent;
+}
+
+/* Bold menu items */
+.sidebar-menu .ant-menu-item {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  padding: 0 12px !important;
+}
+/* Larger icons in sidebar */
+.sidebar-menu .ant-menu-item .anticon {
+  font-size: 20px;
+}
+
+
+/* Selected item accent */
+.sidebar-menu .ant-menu-item-selected {
+  background: rgba(24, 144, 255, 0.15) !important;
+  border-radius: 8px;
+  color: #1890ff !important;
+  padding: 0 12px !important;
+}
+
+/* Hover state */
+.sidebar-menu .ant-menu-item:hover {
+  background: #f5f5f5 !important;
+}
+
+/* Bottom navigation for mobile */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 64px;
+  background: #fff;
+  border-top: 1px solid #e6e6e6;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1200;
+}
+.bottom-nav .nav-item {
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  color: #8c8c8c;
+  font-weight: 600;
+}
+.bottom-nav .nav-item svg {
+  font-size: 24px;
+}
+.bottom-nav .nav-item-active {
+  background: rgba(24, 144, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px 12px;
+  color: #1890ff;
+}
+
+/* Mobile hamburger */
+.sidebar-hamburger {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1100;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Divider, Typography, Button, Drawer, Grid } from 'antd';
+import { Layout, Menu, Typography, Button, Drawer, Grid } from 'antd';
+import './Sidebar.css';
 import { Link, useLocation } from 'react-router-dom';
 import {
   HomeOutlined,
@@ -25,16 +26,14 @@ const Sidebar = ({ collapsed, onCollapse }) => {
   // Menu content
   const menuContent = (
     <>
-      <div style={{
-        display: 'flex', alignItems: 'center', padding: '20px 16px', marginBottom: 0
-      }}>
+      <div className="sidebar-logo">
         <CodeSandboxOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
         <Title level={4} style={{ margin: 0, marginLeft: '12px', color: '#1a1a1a', fontWeight: 700, letterSpacing: 1 }}>MLOps</Title>
       </div>
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        style={{ borderRight: 0, fontSize: 16, fontWeight: 500, background: 'transparent', padding: '16px 0' }}
+        className="sidebar-menu"
       >
         <Menu.Item key="/" icon={<HomeOutlined />}>
           <Link to="/">Dashboard</Link>
@@ -59,29 +58,30 @@ const Sidebar = ({ collapsed, onCollapse }) => {
     </>
   );
 
-  // Responsive: Drawer on mobile, Sider on desktop
+  // Mobile: bottom navigation bar
   if (isMobile) {
+    const navItems = [
+      { key: '/', icon: <HomeOutlined />, label: 'Home' },
+      { key: '/experiments', icon: <ExperimentOutlined />, label: 'Experiments' },
+      { key: '/models', icon: <AppstoreOutlined />, label: 'Models' },
+      { key: '/monitoring', icon: <BarChartOutlined />, label: 'Monitor' },
+      { key: '/alerts', icon: <BellOutlined />, label: 'Alerts' },
+      { key: '/users', icon: <UserOutlined />, label: 'Users' }
+    ];
+
     return (
-      <>
-        <Button
-          className="sidebar-mobile-trigger"
-          type="primary"
-          icon={<MenuOutlined />}
-          onClick={() => setDrawerVisible(true)}
-          style={{ position: 'fixed', top: 16, left: 16, zIndex: 1100, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
-        />
-        <Drawer
-          placement="left"
-          closable={false}
-          onClose={() => setDrawerVisible(false)}
-          open={drawerVisible}
-          width={240}
-          bodyStyle={{ padding: 0, background: '#fff' }}
-          style={{ zIndex: 1200 }}
-        >
-          {menuContent}
-        </Drawer>
-      </>
+      <div className="bottom-nav">
+        {navItems.map(item => (
+          <Link
+            key={item.key}
+            to={item.key}
+            className={`nav-item${location.pathname === item.key ? ' nav-item-active' : ''}`}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </div>
     );
   }
 
@@ -94,11 +94,11 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       collapsed={collapsed}
       onCollapse={onCollapse}
       breakpoint="md"
-      collapsedWidth={64}
+      collapsedWidth={80}
       style={{
         minHeight: '100vh',
         background: '#fff',
-        boxShadow: '2px 0 8px rgba(0,0,0,0.06)',
+
         borderRight: '1px solid #f0f0f0',
         transition: 'all 0.2s',
         zIndex: 100,
