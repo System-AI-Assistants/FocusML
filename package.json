@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
+    "@react-keycloak/web": "^3.4.0",
+    "keycloak-js": "^26.2.0"
+  }
+}

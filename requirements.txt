@@ -1,2 +1,10 @@
 ollama~=0.5.1
 rich~=14.0.0
+uvicorn~=0.34.3
+jwt~=1.4.0
+dotenv~=0.9.9
+python-dotenv~=1.1.1
+fastapi~=0.115.13
+pydantic~=2.11.7
+mlflow~=3.1.1
+mlflow-skinny~=3.1.1

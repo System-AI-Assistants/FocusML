@@ -1,19 +1,42 @@
-import React, { useState } from 'react';
-import { Card, Table, Button, Modal, Form, Input, Space, Typography, Tag, Avatar } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, Table, Button, Modal, Form, Input, Space, Typography, Tag, Avatar, message } from 'antd';
 import { PlusOutlined, DeleteOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
+import { useKeycloak } from '@react-keycloak/web';
+import axios from 'axios';
 
 const { Title } = Typography;
 
-const initialUsers = [
-  { key: '1', name: 'John Doe', email: 'john.doe@example.com', role: 'Admin', status: 'active' },
-  { key: '2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Developer', status: 'active' },
-  { key: '3', name: 'Sam Wilson', email: 'sam.wilson@example.com', role: 'Viewer', status: 'inactive' },
-];
+const API_URL = 'http://localhost:8000/api';
 
 function UserManagement() {
-  const [users, setUsers] = useState(initialUsers);
+  const { keycloak, initialized } = useKeycloak();
+  const [users, setUsers] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [form] = Form.useForm();
+
+  const fetchUsers = useCallback(async () => {
+    if (initialized && keycloak.authenticated) {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API_URL}/users`, {
+          headers: {
+            Authorization: `Bearer ${keycloak.token}`,
+          },
+        });
+        setUsers(response.data);
+      } catch (error) {
+        message.error('Failed to fetch users. Is your backend running?');
+        console.error('Fetch users error:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [initialized, keycloak]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const showModal = () => {
     setIsModalVisible(true);
@@ -24,48 +47,63 @@ function UserManagement() {
     form.resetFields();
   };
 
-  const handleAddUser = (values) => {
-    const newUser = { ...values, key: String(users.length + 1), status: 'active' };
-    setUsers([...users, newUser]);
-    handleCancel();
+  const handleAddUser = async (values) => {
+    try {
+      await axios.post(`${API_URL}/users`, values, {
+        headers: {
+          Authorization: `Bearer ${keycloak.token}`,
+        },
+      });
+      message.success('User added successfully!');
+      fetchUsers(); // Refetch users to update the list
+      handleCancel();
+    } catch (error) {
+      message.error('Failed to add user.');
+      console.error('Add user error:', error);
+    }
   };
 
-  const handleDelete = (key) => {
-    setUsers(users.filter(user => user.key !== key));
+  const handleDelete = async (userId) => {
+    try {
+      await axios.delete(`${API_URL}/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${keycloak.token}`,
+        },
+      });
+      message.success('User deleted successfully!');
+      fetchUsers(); // Refetch users to update the list
+    } catch (error) {
+      message.error('Failed to delete user.');
+      console.error('Delete user error:', error);
+    }
   };
 
   const columns = [
     {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name, record) => (
+      title: 'User',
+      dataIndex: 'username',
+      key: 'username',
+      render: (username, record) => (
         <Space>
           <Avatar icon={<UserOutlined />} />
           <div>
-            <div style={{ fontWeight: 500 }}>{name}</div>
+            <div style={{ fontWeight: 500 }}>{`${record.firstName || ''} ${record.lastName || ''}`.trim() || username}</div>
             <div style={{ color: '#8c8c8c' }}>{record.email}</div>
           </div>
         </Space>
       ),
     },
     {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
-      render: role => {
-        let color = 'default';
-        if (role === 'Admin') color = 'volcano';
-        if (role === 'Developer') color = 'geekblue';
-        return <Tag color={color}>{role}</Tag>;
-      },
+      title: 'Username',
+      dataIndex: 'username',
+      key: 'username',
     },
     {
       title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: status => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>{status.toUpperCase()}</Tag>
+      dataIndex: 'enabled',
+      key: 'enabled',
+      render: enabled => (
+        <Tag color={enabled ? 'green' : 'red'}>{enabled ? 'ACTIVE' : 'INACTIVE'}</Tag>
       ),
     },
     {
@@ -74,7 +112,7 @@ function UserManagement() {
       render: (_, record) => (
         <Space>
           <Button icon={<EditOutlined />} />
-          <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.key)} />
+          <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
         </Space>
       ),
     },
@@ -87,7 +125,13 @@ function UserManagement() {
         <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>Add User</Button>
       </div>
       <Card className="modern-card">
-        <Table dataSource={users} columns={columns} pagination={{ pageSize: 10 }} rowKey="key" />
+        <Table 
+          dataSource={users} 
+          columns={columns} 
+          pagination={{ pageSize: 10 }} 
+          rowKey="id"
+          loading={loading}
+        />
       </Card>
 
       <Modal
@@ -98,14 +142,20 @@ function UserManagement() {
         width={400}
       >
         <Form form={form} onFinish={handleAddUser} layout="vertical" style={{ marginTop: '24px' }}>
-          <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
-            <Input placeholder="e.g. John Doe" />
+          <Form.Item name="username" label="Username" rules={[{ required: true }]}>
+            <Input placeholder="e.g. jsmith" />
           </Form.Item>
           <Form.Item name="email" label="Email Address" rules={[{ required: true, type: 'email' }]}>
-            <Input placeholder="e.g. john.doe@example.com" />
+            <Input placeholder="e.g. john.smith@example.com" />
           </Form.Item>
-          <Form.Item name="role" label="Role" rules={[{ required: true }]}>
-            <Input placeholder="e.g. Developer" />
+          <Form.Item name="firstName" label="First Name">
+            <Input placeholder="e.g. John" />
+          </Form.Item>
+          <Form.Item name="lastName" label="Last Name">
+            <Input placeholder="e.g. Smith" />
+          </Form.Item>
+           <Form.Item name="password" label="Password" rules={[{ required: true }]}>
+            <Input.Password placeholder="Enter a temporary password" />
           </Form.Item>
           <Form.Item style={{ textAlign: 'right', marginTop: '24px' }}>
             <Space>

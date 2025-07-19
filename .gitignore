@@ -1,2 +1,6 @@
 .venv
 db
+.DS_Store
+.env.db
+.env.keycloak
+.idea/
