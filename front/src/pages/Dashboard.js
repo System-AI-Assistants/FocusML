@@ -1,4 +1,5 @@
 import React from 'react';
+import './Dashboard.css';
 import { Card, Row, Col, Statistic, List, Typography, Progress, Tag } from 'antd';
 import { 
   ArrowUpOutlined, 
@@ -49,7 +50,7 @@ function Dashboard() {
   ];
 
   return (
-    <div style={{ padding: '24px', background: '#f8f9fa', minHeight: '100vh' }}>
+    <div className="page-container">
       <div className="page-title">Dashboard</div>
       
       {/* Key Statistics */}

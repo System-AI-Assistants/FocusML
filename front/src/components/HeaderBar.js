@@ -1,4 +1,5 @@
 import React from 'react';
+import './HeaderBar.css';
 import { Layout, Input, Avatar, Dropdown, Menu, Space, Typography } from 'antd';
 import { UserOutlined, LogoutOutlined, SettingOutlined, SearchOutlined } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';

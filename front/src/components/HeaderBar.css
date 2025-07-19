@@ -1,0 +1,32 @@
+.modern-header {
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 64px;
+}
+
+.modern-search {
+  max-width: 320px;
+}
+
+.user-info-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.user-avatar {
+  background: var(--color-bg-hover);
+  margin-right: 12px;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}

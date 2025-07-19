@@ -1,0 +1,40 @@
+.page-container {
+  padding: 24px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.modern-card {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: none;
+  background: #fff;
+}
+
+.stat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.card-title {
+  font-weight: 600;
+}
+
+/* Recent activity list */
+.status-active { color: #52c41a; }
+.status-info { color: var(--color-accent); }
+.status-warning { color: #faad14; }
