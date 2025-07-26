@@ -27,13 +27,14 @@ const Sidebar = ({ collapsed, onCollapse }) => {
   const menuContent = (
     <>
       <div className="sidebar-logo">
-        <CodeSandboxOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
-        <Title level={4} style={{ margin: 0, marginLeft: '12px', color: '#1a1a1a', fontWeight: 700, letterSpacing: 1 }}>MLOps</Title>
+  <img src="/logo.svg" alt="MLfocus Logo" style={{ width: '36px', height: '36px' }} />
+        <Title level={3} style={{ margin: 0, marginLeft: '10px', color: '#1a1a1a', fontFamily: 'TikTok Sans', fontWeight:700  }}>FocusML</Title>
       </div>
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
         className="sidebar-menu"
+        style={{borderInlineEnd: 0}}
       >
         <Menu.Item key="/" icon={<HomeOutlined />}>
           <Link to="/">Dashboard</Link>
@@ -98,6 +99,8 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       style={{
         minHeight: '100vh',
         background: '#fff',
+
+        borderRight: '1px solid #f0f0f0',
         transition: 'all 0.2s',
         zIndex: 100,
       }}

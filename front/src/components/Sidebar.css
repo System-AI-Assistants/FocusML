@@ -1,13 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
 .sidebar-container {
-  border-right: none;
-}
-
-.modern-sidebar {
-  border-right: 1px solid var(--color-border);
-  border-inline-end: 1px solid var(--color-border) !important;
-}
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   background: #fff;
@@ -20,26 +13,27 @@
   align-items: center;
   height: 56px;
   padding: 0 16px;
+  justify-content: center;
 }
 
 .sidebar-logo .app-name {
   margin-left: 12px;
   color: #1f1f1f;
   font-weight: 700;
-  letter-spacing: 0.5px;
+
 }
 
 .sidebar-menu {
   border-right: none;
-  padding: 16px 0;
+  padding: 8px 0;
   background: transparent;
 }
 
 /* Bold menu items */
 .sidebar-menu .ant-menu-item {
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  padding: 0 12px !important;
+  font-weight: 700;
+  padding: 0 18px !important;
 }
 /* Larger icons in sidebar */
 .sidebar-menu .ant-menu-item .anticon {
@@ -52,7 +46,7 @@
   background: rgba(24, 144, 255, 0.15) !important;
   border-radius: 8px;
   color: #1890ff !important;
-  padding: 0 12px !important;
+  padding: 0 18px !important;
 }
 
 /* Hover state */

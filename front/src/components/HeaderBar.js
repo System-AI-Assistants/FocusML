@@ -32,7 +32,7 @@ const HeaderBar = () => {
   return (
     <Header className="modern-header">
       <Input
-        placeholder="Search transactions, models, etc..."
+        placeholder="Search models, users etc..."
         prefix={<SearchOutlined style={{ color: '#adb5bd' }} />}
         className="modern-search"
       />

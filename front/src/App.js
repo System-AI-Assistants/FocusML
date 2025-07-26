@@ -6,6 +6,8 @@ import Sidebar from './components/Sidebar';
 import HeaderBar from './components/HeaderBar';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
+import Models from './pages/Models';
+import AddModel from './pages/AddModel';
 import './App.css';
 
 const { Content } = Layout;
@@ -32,6 +34,8 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/models" element={<Models />} />
+              <Route path="/models/add" element={<AddModel />} />
               {/* Add other routes for experiments, models, etc. here */}
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
