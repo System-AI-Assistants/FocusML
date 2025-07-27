@@ -2,6 +2,7 @@ import json
 
 import requests
 from bs4 import BeautifulSoup
+import re
 
 URL = 'https://ollama.com/search'
 
@@ -39,8 +40,10 @@ def match_icon(title):
             return f"/images/models/{filename}"
     return None
 
+
+
 def extract_size_tags(tags):
-    return [tag for tag in tags if tag.lower().endswith("b") and tag[0].isdigit()]
+    return [tag for tag in tags if re.match(r'^[a-zA-Z0-9.]+b$', tag.lower())]
 
 def parse_ollama():
     html = requests.get(URL).content
@@ -70,7 +73,7 @@ def parse_ollama():
 
         size_tags = extract_size_tags(all_tags)
 
-        models = [f"{title.lower()}:latest"] + [f"{title.lower()}:{size}" for size in size_tags]
+        models = [f"{title_text.lower()}:latest"] + [f"{title_text.lower()}:{size}" for size in size_tags]
 
         results.append({
             'title': title_text,
