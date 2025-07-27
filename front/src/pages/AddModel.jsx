@@ -4,8 +4,9 @@ import { Breadcrumb, Descriptions } from 'antd';
 import ModelCard from '../components/ModelCard';
 
 
-import { Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col } from "antd";
+import { Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col, Tag } from "antd";
 import { InboxOutlined, InfoCircleOutlined } from "@ant-design/icons";
+
 
 
 
@@ -15,20 +16,48 @@ const { Dragger } = Upload;
 
 const modelOptions = [
   {
+    key: "deepseek-r1",
+    name: "deepseek-r1",
+    provider: "Deepseek",
+    icon: "/images/models/deepseek.png",
+    description: "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.",
+    tags: ["tools", "thinking", "1.5b", "7b", "8b", "14b", "32b", "70b", "671b"]
+  },
+  {
+    key: "gemma3n",
+    name: "gemma3n",
+    provider: "Google",
+    icon: "/images/models/gemma.png",
+    description: "Gemma 3n models are designed for efficient execution on everyday devices such as laptops, tablets or phones.",
+    tags: ["tools", "thinking", "1.5b", "7b", "8b", "14b", "32b", "70b", "671b"]
+
+  }
+
+];
+
+const modelOptionsCloud = [
+  {
+    key: "deepseek-r1",
+    name: "deepseek-r1",
+    provider: "Deepseek",
+    icon: "/images/models/deepseek.png",
+    description: "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro."
+  },
+  {
     key: "gpt-4o",
-    title: "gpt-4o",
+    name: "gpt-4o",
     provider: "OpenAI",
     description: "Cloud-based, powerful LLM for general-purpose NLP"
   },
   {
     key: "llama3",
-    title: "LLaMA 3",
+    name: "LLaMA 3",
     provider: "Local",
     description: "On-premise LLM using llama.cpp"
   },
   {
     key: "custom-api-model",
-    title: "Custom API",
+    name: "Custom API",
     provider: "Remote",
     description: "Custom endpoint with flexible parameters"
   }
@@ -45,7 +74,7 @@ const executionTypeOptions = [
     title: "Cloud",
     description: "Easy to scale, no hardware needed, maintained by provider."
   },
-  
+
 ];
 
 function CreateModel() {
@@ -74,7 +103,7 @@ function CreateModel() {
 
 
   const filteredModels = modelOptions.filter(m =>
-    m.title.toLowerCase().includes(searchTerm.toLowerCase())
+    m.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const onSelectExecutionType = (key) => {
@@ -122,37 +151,37 @@ function CreateModel() {
             <Row gutter={16}>
               {executionTypeOptions.map(({ key, title, description }) => (
                 <Col span={12} key={key}>
-                 <Card
-  hoverable
-  onClick={() => onSelectExecutionType(key)}
-  style={{
-    cursor: "pointer",
-    borderColor: selectedExecutionType === key ? "#1890ff" : undefined,
-    borderWidth: selectedExecutionType === key ? 2 : 1,
-    padding: 8, // Reduce default padding (or set to 0 and control spacing manually)
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-  >
-    <Radio
-      checked={selectedExecutionType === key}
-      onChange={() => onSelectExecutionType(key)}
-      style={{ marginRight: 16 }}
-    />
-    <div>
-      <Title level={5} style={{ marginBottom: 4, marginTop: 0 }}>
-        {title}
-      </Title>
-      <p style={{ margin: 0, color: "rgba(0,0,0,0.65)" }}>{description}</p>
-    </div>
-  </div>
-</Card>
+                  <Card
+                    hoverable
+                    onClick={() => onSelectExecutionType(key)}
+                    style={{
+                      cursor: "pointer",
+                      borderColor: selectedExecutionType === key ? "#1890ff" : undefined,
+                      borderWidth: selectedExecutionType === key ? 2 : 1,
+                      padding: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Radio
+                        checked={selectedExecutionType === key}
+                        onChange={() => onSelectExecutionType(key)}
+                        style={{ marginRight: 16 }}
+                      />
+                      <div>
+                        <Title level={5} style={{ marginBottom: 4, marginTop: 0 }}>
+                          {title}
+                        </Title>
+                        <p style={{ margin: 0, color: "rgba(0,0,0,0.65)" }}>{description}</p>
+                      </div>
+                    </div>
+                  </Card>
                 </Col>
               ))}
             </Row>
@@ -165,18 +194,28 @@ function CreateModel() {
           <Row gutter={[16, 16]}>
             {filteredModels.map((model) => (
               <Col span={24} key={model.key}>
+
                 <Card
-                  title={model.title}
                   bordered={selectedModel !== model.key}
                   onClick={() => {
                     setSelectedModel(model.key);
                     form.setFieldsValue({ model: model.key });
                   }}
-                  style={{ cursor: "pointer", borderColor: selectedModel === model.key ? "#1890ff" : undefined }}
-                >
-                  <p><strong>Provider:</strong> {model.provider}</p>
+                  style={{ cursor: "pointer", borderColor: selectedModel === model.key ? "#1890ff" : undefined }}>
+                  <h2 className="model-name" style={{ marginTop: 0 }}>
+                    <img src={model.icon} alt="icon" width="32" height="32" style={{ verticalAlign: 'middle' }} /> {model.name}
+                  </h2>
+
+                  <Divider />
                   <p>{model.description}</p>
+
+
+                  {(model.tags).map(tag =>
+                    <Tag color="blue">{tag}</Tag>
+                  )}
+
                 </Card>
+
               </Col>
             ))}
           </Row>

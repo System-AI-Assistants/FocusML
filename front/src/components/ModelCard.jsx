@@ -13,7 +13,7 @@ function ModelCard({ model }) {
             {model.tags}
         </div>
 
-
+        
 
 
     </div>

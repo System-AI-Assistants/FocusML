@@ -8,6 +8,8 @@ services:
       - postgres_data:/var/lib/postgresql17_5/data
     env_file:
       - ./.env.db
+    ports:
+      - 5432:5432
     networks:
       - mlops_network
 
