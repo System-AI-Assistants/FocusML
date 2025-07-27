@@ -3,4 +3,5 @@ db
 .DS_Store
 .env.db
 .env.keycloak
+.env.appdb
 .idea/

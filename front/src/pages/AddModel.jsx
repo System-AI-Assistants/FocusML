@@ -196,14 +196,16 @@ function CreateModel() {
               <Col span={24} key={model.key}>
 
                 <Card
+                  hoverable
                   bordered={selectedModel !== model.key}
                   onClick={() => {
                     setSelectedModel(model.key);
                     form.setFieldsValue({ model: model.key });
                   }}
                   style={{ cursor: "pointer", borderColor: selectedModel === model.key ? "#1890ff" : undefined }}>
+                    
                   <h2 className="model-name" style={{ marginTop: 0 }}>
-                    <img src={model.icon} alt="icon" width="32" height="32" style={{ verticalAlign: 'middle' }} /> {model.name}
+                    <img src={model.icon} alt="icon" height="32" style={{ verticalAlign: 'middle' }} /> {model.name}
                   </h2>
 
                   <Divider />
