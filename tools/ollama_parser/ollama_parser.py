@@ -4,7 +4,10 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+from tools.ollama_parser.get_models import parse_model_page
+
 URL = 'https://ollama.com/search'
+OLLAMA_BASE = 'https://ollama.com/'
 
 icon_map = {
     "deepseek": "deepseek.png",
@@ -41,10 +44,6 @@ def match_icon(title):
     return None
 
 
-
-def extract_size_tags(tags):
-    return [tag for tag in tags if re.match(r'^[a-zA-Z0-9.]+b$', tag.lower())]
-
 def parse_ollama():
     html = requests.get(URL).content
 
@@ -54,8 +53,9 @@ def parse_ollama():
 
     # Extract data from each block
     results = []
-
+    i = 0
     for item in model_items:
+        i = i + 1
         # Title
         title = item.find('span', {'x-test-search-response-title': True})
         title_text = title.get_text(strip=True) if title else None
@@ -71,9 +71,10 @@ def parse_ollama():
 
         icon = match_icon(title_text)
 
-        size_tags = extract_size_tags(all_tags)
+        url = item.find('a').get('href')
 
-        models = [f"{title_text.lower()}:latest"] + [f"{title_text.lower()}:{size}" for size in size_tags]
+        models = parse_model_page(OLLAMA_BASE + url)
+        print(f'Model {title_text} - {i}/{len(model_items)} \n')
 
         results.append({
             'title': title_text,
@@ -81,7 +82,9 @@ def parse_ollama():
             'tags': all_tags,
             'icon': icon,
             'models': models,
-            'installed': None
+            'url': url,
+            'installed': None,
+
         })
 
     return results
