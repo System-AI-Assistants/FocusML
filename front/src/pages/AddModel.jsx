@@ -1,109 +1,60 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useKeycloak } from '@react-keycloak/web';
+import { Breadcrumb, Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col, Tag, message } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
+import { getModelFams } from '../services/api';
 import './AddModel.css';
-import React, { useState } from 'react';
-import { Breadcrumb, Descriptions } from 'antd';
-import ModelCard from '../components/ModelCard';
-
-
-import { Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col, Tag } from "antd";
-import { InboxOutlined, InfoCircleOutlined } from "@ant-design/icons";
-
-
-
 
 const { Title } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 
-const modelOptions = [
-  {
-    key: "deepseek-r1",
-    name: "deepseek-r1",
-    provider: "Deepseek",
-    icon: "/images/models/deepseek.png",
-    description: "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.",
-    tags: ["tools", "thinking", "1.5b", "7b", "8b", "14b", "32b", "70b", "671b"]
-  },
-  {
-    key: "gemma3n",
-    name: "gemma3n",
-    provider: "Google",
-    icon: "/images/models/gemma.png",
-    description: "Gemma 3n models are designed for efficient execution on everyday devices such as laptops, tablets or phones.",
-    tags: ["tools", "thinking", "1.5b", "7b", "8b", "14b", "32b", "70b", "671b"]
-
-  }
-
-];
-
-const modelOptionsCloud = [
-  {
-    key: "deepseek-r1",
-    name: "deepseek-r1",
-    provider: "Deepseek",
-    icon: "/images/models/deepseek.png",
-    description: "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro."
-  },
-  {
-    key: "gpt-4o",
-    name: "gpt-4o",
-    provider: "OpenAI",
-    description: "Cloud-based, powerful LLM for general-purpose NLP"
-  },
-  {
-    key: "llama3",
-    name: "LLaMA 3",
-    provider: "Local",
-    description: "On-premise LLM using llama.cpp"
-  },
-  {
-    key: "custom-api-model",
-    name: "Custom API",
-    provider: "Remote",
-    description: "Custom endpoint with flexible parameters"
-  }
-];
-
 const executionTypeOptions = [
   {
-    key: "on-premise",
-    title: "Host Locally",
-    description: "Full control, data privacy, and offline availability."
+    key: 'on-premise',
+    title: 'Host Locally',
+    description: 'Full control, data privacy, and offline availability.',
   },
   {
-    key: "cloud",
-    title: "Cloud",
-    description: "Easy to scale, no hardware needed, maintained by provider."
+    key: 'cloud',
+    title: 'Cloud',
+    description: 'Easy to scale, no hardware needed, maintained by provider.',
   },
-
 ];
 
-function CreateModel() {
-
-  const exampleModel = {
-    name: "Deepseek R1",
-    icon: "https://custom.typingmind.com/assets/models/deepseek.png",
-    description: "DeepSeek-R1 is a family of open reasoning models with performance approaching that of leading models, such as O3 and Gemini 2.5 Pro.",
-    tags: [
-      "tools",
-      "thinking",
-      "1.5b",
-      "7b",
-      "8b",
-      "14b",
-      "32b",
-      "70b",
-      "671b"
-    ]
-  }
-
+const AddModel = () => {
+  const { keycloak, initialized } = useKeycloak();
+  const [modelFamilies, setFamily] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [form] = Form.useForm();
   const [selectedModel, setSelectedModel] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedExecutionType, setSelectedExecutionType] = useState(null);
+  const [fileList, setFileList] = useState([]);
 
+  const fetchModels = useCallback(async () => {
+    if (initialized && keycloak.authenticated) {
+      setIsLoading(true);
+      try {
+        const fams = await getModelFams(keycloak);
+        setFamily(fams);
+      } catch (err) {
+        message.error('Failed to fetch models. Is your backend running?');
+        console.error('Fetch models error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      console.warn('Keycloak not initialized or not authenticated');
+    }
+  }, [initialized, keycloak]);
 
-  const filteredModels = modelOptions.filter(m =>
-    m.name.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
+
+  const filteredModels = modelFamilies.filter(m =>
+    m.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const onSelectExecutionType = (key) => {
@@ -111,28 +62,24 @@ function CreateModel() {
     form.setFieldsValue({ executionType: key });
   };
 
+  const handleUploadChange = ({ fileList }) => {
+    setFileList(fileList);
+  };
+
   return (
     <>
       <Breadcrumb
         items={[
-
-          {
-            title: <a href="/models">Models</a>,
-          },
-          {
-            title: 'Add Model',
-          },
+          { title: <a href="/models">Models</a> },
+          { title: 'Add Model' },
         ]}
       />
-
-      {/* <ModelCard model={exampleModel} /> */}
-      <div className='add-model-div'>
-
+      <div className="add-model-div">
         <Form
           form={form}
           layout="vertical"
-          onFinish={(values) => console.log(values)}
-          style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}
+          onFinish={(values) => console.log('Form values:', values)}
+          style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}
         >
           <Title level={3}>1. Model Configuration</Title>
 
@@ -141,12 +88,12 @@ function CreateModel() {
               <span>
                 Host Locally or On-Cloud &nbsp;
                 <Tooltip title="Choose where your assistant runs: locally on your own infrastructure or on cloud providers.">
-                  <InfoCircleOutlined />
+                  {/* <InfoCircleOutlined /> */}
                 </Tooltip>
               </span>
             }
             name="executionType"
-            rules={[{ required: true, message: "Please select where to host the assistant" }]}
+            rules={[{ required: true, message: 'Please select where to host the assistant' }]}
           >
             <Row gutter={16}>
               {executionTypeOptions.map(({ key, title, description }) => (
@@ -155,20 +102,13 @@ function CreateModel() {
                     hoverable
                     onClick={() => onSelectExecutionType(key)}
                     style={{
-                      cursor: "pointer",
-                      borderColor: selectedExecutionType === key ? "#1890ff" : undefined,
+                      cursor: 'pointer',
+                      borderColor: selectedExecutionType === key ? '#1890ff' : undefined,
                       borderWidth: selectedExecutionType === key ? 2 : 1,
                       padding: 8,
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
+                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                       <Radio
                         checked={selectedExecutionType === key}
                         onChange={() => onSelectExecutionType(key)}
@@ -178,7 +118,7 @@ function CreateModel() {
                         <Title level={5} style={{ marginBottom: 4, marginTop: 0 }}>
                           {title}
                         </Title>
-                        <p style={{ margin: 0, color: "rgba(0,0,0,0.65)" }}>{description}</p>
+                        <p style={{ margin: 0, color: 'rgba(0,0,0,0.65)' }}>{description}</p>
                       </div>
                     </div>
                   </Card>
@@ -188,46 +128,72 @@ function CreateModel() {
           </Form.Item>
 
           <Form.Item label="Search Model">
-            <Input placeholder="Search models..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Input
+              placeholder="Search models..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </Form.Item>
 
+          {isLoading && <div>Loading models...</div>}
           <Row gutter={[16, 16]}>
-            {filteredModels.map((model) => (
-              <Col span={24} key={model.key}>
+            <div
+              style={{
+                height: 400,
+                overflowY: 'auto',
+                padding: 8,
+              
+              }}
+            >
+              <Row gutter={[16, 16]}>
+                {filteredModels.map((model) => (
+                  <Col span={24} key={model.id || model.key}>
+                    <Card
+                      hoverable
+                      bordered={selectedModel !== (model.key || model.id)}
+                      onClick={() => {
+                        setSelectedModel(model.key || model.id);
+                        form.setFieldsValue({ model: model.key || model.id });
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        borderColor: selectedModel === (model.key || model.id) ? '#1890ff' : undefined,
+                      }}
+                    >
+                      <h2 className="model-name" style={{ marginTop: 0 }}>
+                        {model.icon && (
+                          <img
+                            src={model.icon}
+                            alt="icon"
+                            height="32"
+                            style={{ verticalAlign: 'middle', marginRight: 8 }}
+                          />
+                        )}
+                        {model.name}
+                      </h2>
+                      <Divider />
+                      <p>{model.description}</p>
+                      {model.tags &&
+                        model.tags.map((tag) => (
+                          <Tag key={tag} color="blue">
+                            {tag}
+                          </Tag>
+                        ))}
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </div>
+            
 
-                <Card
-                  hoverable
-                  bordered={selectedModel !== model.key}
-                  onClick={() => {
-                    setSelectedModel(model.key);
-                    form.setFieldsValue({ model: model.key });
-                  }}
-                  style={{ cursor: "pointer", borderColor: selectedModel === model.key ? "#1890ff" : undefined }}>
-                    
-                  <h2 className="model-name" style={{ marginTop: 0 }}>
-                    <img src={model.icon} alt="icon" height="32" style={{ verticalAlign: 'middle' }} /> {model.name}
-                  </h2>
-
-                  <Divider />
-                  <p>{model.description}</p>
-
-
-                  {(model.tags).map(tag =>
-                    <Tag color="blue">{tag}</Tag>
-                  )}
-
-                </Card>
-
-              </Col>
-            ))}
           </Row>
 
-          <Form.Item name="model" hidden rules={[{ required: true, message: "Please select a model" }]}>
+          <Form.Item name="model" hidden rules={[{ required: true, message: 'Please select a model' }]}>
             <Input type="hidden" />
           </Form.Item>
 
           <Divider />
-          <Title level={3}>2. Main</Title>
+          <Title level={3}>2. General</Title>
           <Form.Item label="Assistant Name" name="name" rules={[{ required: true }]}>
             <Input placeholder="e.g., LegalSummarizer-v1" />
           </Form.Item>
@@ -267,7 +233,12 @@ function CreateModel() {
           </Form.Item>
 
           <Form.Item label="Attach File (optional)" name="dataFile">
-            <Dragger name="file" multiple={false} beforeUpload={() => false}>
+            <Dragger
+              fileList={fileList}
+              multiple={false}
+              beforeUpload={() => false}
+              onChange={handleUploadChange}
+            >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
@@ -299,12 +270,8 @@ function CreateModel() {
           </Form.Item>
         </Form>
       </div>
-
-
-
     </>
   );
-}
+};
 
-
-export default CreateModel;
+export default AddModel;

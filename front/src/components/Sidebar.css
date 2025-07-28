@@ -1,11 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
+
+
 .sidebar-container {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   background: #fff;
   border-right: 1px solid #e6e6e6;
   transition: width 0.2s ease;
+    
+
 }
 
 .sidebar-logo {

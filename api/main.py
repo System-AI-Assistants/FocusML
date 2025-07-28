@@ -7,9 +7,41 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from keycloak import KeycloakAdmin, KeycloakOpenID
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.exc import SQLAlchemyError
+
+from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.exc import SQLAlchemyError
+
+
+Base = declarative_base()
+
+class ModelFamily(Base):
+    __tablename__ = 'model_families'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
+    description = Column(Text)
+    icon = Column(String(255))
+    url = Column(String(255))
+    installed = Column(Boolean)
+    models = relationship("Model", back_populates="family")
+
+
+class Model(Base):
+    __tablename__ = 'models'
+
+    id = Column(Integer, primary_key=True)
+    family_id = Column(Integer, ForeignKey('model_families.id'), nullable=False)
+    name = Column(String(255), nullable=False)
+    size = Column(String(50))
+    context = Column(String(50))
+    input_type = Column(String(100))
+    family = relationship("ModelFamily", back_populates="models")
 
 load_dotenv()
-
 
 KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL")
 KEYCLOAK_REALM_NAME = os.getenv("KEYCLOAK_REALM_NAME")
@@ -25,6 +57,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
+DB_URL = 'postgresql://react:DcaErJGsvJdLvzRV3FYddcVfH5gDcnBcErJGasdcaS@localhost:5432/react_db'
+
+engine = create_engine(DB_URL)
+SessionLocal = sessionmaker(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,7 +89,6 @@ def get_keycloak_admin():
         return None
 
 
-
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
@@ -76,7 +111,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         print(f"Attempting to introspect token with Keycloak at {KEYCLOAK_SERVER_URL}")
         token_info = keycloak_openid.introspect(token)
         print(f"Token introspection result: {token_info}")
-        
+
         if not token_info.get('active', False):
             print("Token is not active")
             raise HTTPException(
@@ -84,7 +119,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
                 detail="Token is not active",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         print("Token validation successful")
         return token_info
     except HTTPException:
@@ -164,6 +199,35 @@ def delete_user(user_id: str):
 @app.get("/")
 def root():
     return {"message": "MLOps Platform API is running."}
+
+
+@app.get("/api/ollama-models", dependencies=[Depends(get_current_user)])
+def get_models():
+    """Retrieve all model families and their models from the database in the original JSON format."""
+    try:
+        with SessionLocal() as session:
+            families = session.query(ModelFamily).all()
+            result = []
+            for family in families:
+                family_data = {
+                    "name": family.name,
+                    "description": family.description,
+                    "icon": family.icon,
+                    "url": family.url,
+                    "installed": family.installed,
+                    "models": [
+                        {
+                            "name": model.name,
+                            "size": model.size,
+                            "context": model.context,
+                            "input": model.input_type
+                        } for model in family.models
+                    ]
+                }
+                result.append(family_data)
+            return result
+    except SQLAlchemyError as e:
+        print(f"Error fetching models: {e}, type: {type(e)}")
 
 
 # To run the app: uvicorn main:app --reload

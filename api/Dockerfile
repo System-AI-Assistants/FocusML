@@ -4,6 +4,9 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev
+
+
 # Copy the dependencies file to the working directory
 COPY requirements.txt .
 
