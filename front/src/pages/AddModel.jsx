@@ -58,14 +58,17 @@ const AddModel = () => {
   // Flatten models from all families for filtering
   const allModels = modelFamilies.flatMap(family => family.models.map(model => ({
     ...model,
-    familyTitle: family.title,
+    familyName: family.name, // Store family name for reference
     familyDescription: family.description,
     familyIcon: family.icon,
     familyUrl: family.url,
+    fullName: model.name, // Use model.name directly (e.g., mistral:7b)
   })));
 
+  console.log('All models:', allModels); // Debug: Log all models
+
   const filteredModels = allModels.filter(model =>
-    model.name.toLowerCase().includes(searchTerm.toLowerCase())
+    model.fullName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const onSelectExecutionType = (key) => {
@@ -85,14 +88,22 @@ const AddModel = () => {
 
     setIsLoading(true);
     try {
+      const selectedModelObj = allModels.find(model => model.fullName === values.model);
+      console.log('Selected model:', selectedModelObj); // Debug: Log selected model
+      if (!selectedModelObj) {
+        throw new Error('Selected model not found');
+      }
+
       const payload = {
         name: values.name,
         database_url: values.dbUrl || null,
         version: values.versionTag || null,
         stage: values.stage || null,
-        model: values.model,
+        model: selectedModelObj.fullName, // Use full model name (e.g., mistral:7b)
         is_local: values.executionType === 'on-premise',
       };
+
+      console.log('Payload:', payload); // Debug: Log payload
 
       const response = await createAssistant(keycloak, payload);
       message.success(`Assistant '${response.name}' created successfully!`);
@@ -161,7 +172,7 @@ const AddModel = () => {
                         <Title level={5} style={{ marginBottom: 4, marginTop: 0 }}>
                           {title}
                         </Title>
-                        <p style={{時計: 'rgba(0,0,0,0.65)' }}>{description}</p>
+                        <p style={{ color: 'rgba(0,0,0,0.65)' }}>{description}</p>
                       </div>
                     </div>
                   </Card>
@@ -188,18 +199,18 @@ const AddModel = () => {
           >
             <Row gutter={[16, 16]}>
               {filteredModels.map((model) => (
-                <Col span={24} key={model.name}>
+                <Col span={24} key={model.fullName}>
                   <Card
                     hoverable
                     style={{
                       cursor: 'pointer',
-                      borderColor: selectedModel === model.name ? '#1890ff' : '#d9d9d9',
-                      borderWidth: selectedModel === model.name ? 2 : 1,
+                      borderColor: selectedModel === model.fullName ? '#1890ff' : '#d9d9d9',
+                      borderWidth: selectedModel === model.fullName ? 2 : 1,
                       padding: 8,
                     }}
                     onClick={() => {
-                      setSelectedModel(model.name);
-                      form.setFieldsValue({ model: model.name });
+                      setSelectedModel(model.fullName);
+                      form.setFieldsValue({ model: model.fullName });
                     }}
                   >
                     <h2 className="model-name" style={{ marginTop: 0 }}>
@@ -211,7 +222,7 @@ const AddModel = () => {
                           style={{ verticalAlign: 'middle', marginRight: 8 }}
                         />
                       )}
-                      {model.name} ({model.familyTitle})
+                      {model.fullName} {/* Display only the full model name (e.g., mistral:7b) */}
                     </h2>
                     <Divider />
                     <p>{model.familyDescription}</p>
