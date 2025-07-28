@@ -7,16 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from keycloak import KeycloakAdmin, KeycloakOpenID
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.exc import SQLAlchemyError
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.exc import SQLAlchemyError
-
 
 Base = declarative_base()
+
 
 class ModelFamily(Base):
     __tablename__ = 'model_families'
@@ -41,6 +41,22 @@ class Model(Base):
     input_type = Column(String(100))
     family = relationship("ModelFamily", back_populates="models")
 
+
+class Assistant(Base):
+    __tablename__ = 'assistants'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    owner = Column(String(255), nullable=False)  # Keycloak user ID
+    database_url = Column(String(255))
+    version = Column(String(50))
+    stage = Column(String(50))
+    model = Column(String(255), nullable=False)
+    is_local = Column(Boolean, default=False)
+    create_time = Column(DateTime, server_default=func.now())
+    last_modified = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
 load_dotenv()
 
 KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL")
@@ -52,7 +68,7 @@ KEYCLOAK_ADMIN_CLIENT_SECRET = os.getenv("KEYCLOAK_ADMIN_CLIENT_SECRET")
 KEYCLOAK_FRONTEND_CLIENT_ID = os.getenv("KEYCLOAK_FRONTEND_CLIENT_ID")
 
 app = FastAPI(
-    title="MLOps Platform Backend",
+    title="FocusML Platform Backend",
     description="API for managing users and other platform resources.",
     version="1.0.0"
 )
@@ -60,6 +76,7 @@ app = FastAPI(
 DB_URL = 'postgresql://react:DcaErJGsvJdLvzRV3FYddcVfH5gDcnBcErJGasdcaS@localhost:5432/react_db'
 
 engine = create_engine(DB_URL)
+Base.metadata.create_all(engine, checkfirst=True)  # Create tables if they don't exist
 SessionLocal = sessionmaker(bind=engine)
 
 app.add_middleware(
@@ -95,6 +112,15 @@ class UserCreate(BaseModel):
     password: str
     firstName: str = None
     lastName: str = None
+
+
+class AssistantCreate(BaseModel):
+    name: str
+    database_url: str = None
+    version: str = None
+    stage: str = None
+    model: str
+    is_local: bool = False
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -198,7 +224,7 @@ def delete_user(user_id: str):
 
 @app.get("/")
 def root():
-    return {"message": "MLOps Platform API is running."}
+    return {"message": "FocusML Platform API is running."}
 
 
 @app.get("/api/ollama-models", dependencies=[Depends(get_current_user)])
@@ -229,6 +255,45 @@ def get_models():
     except SQLAlchemyError as e:
         print(f"Error fetching models: {e}, type: {type(e)}")
 
+@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
+def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_current_user)):
+    """Create a new assistant in the database."""
+    try:
+        with SessionLocal() as session:
+            # Validate model exists
+            model = session.query(Model).filter_by(name=assistant.model).first()
+            if not model:
+                raise HTTPException(status_code=400, detail=f"Model '{assistant.model}' not found")
+
+
+            db_assistant = Assistant(
+                name=assistant.name,
+                owner=token_info['sub'],  # Keycloak user ID
+                database_url=assistant.database_url,
+                version=assistant.version,
+                stage=assistant.stage,
+                model=assistant.model,
+                is_local=assistant.is_local
+            )
+            session.add(db_assistant)
+            session.commit()
+            session.refresh(db_assistant)
+
+            response = {
+                "id": db_assistant.id,
+                "name": db_assistant.name,
+                "owner": db_assistant.owner,
+                "database_url": db_assistant.database_url,
+                "version": db_assistant.version,
+                "stage": db_assistant.stage,
+                "model": db_assistant.model,
+                "is_local": db_assistant.is_local,
+                "create_time": db_assistant.create_time.isoformat(),
+                "lastedit_time": db_assistant.lastedit_time.isoformat()
+            }
+            return response
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
 
 # To run the app: uvicorn main:app --reload
 if __name__ == "__main__":

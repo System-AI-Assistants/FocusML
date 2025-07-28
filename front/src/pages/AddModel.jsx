@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
 import { Breadcrumb, Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col, Tag, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
-import { getModelFams } from '../services/api';
+import { getModelFams, createAssistant } from '../services/api';
 import './AddModel.css';
 
 const { Title } = Typography;
@@ -66,6 +66,37 @@ const AddModel = () => {
     setFileList(fileList);
   };
 
+  const onFinish = async (values) => {
+    if (!keycloak.authenticated) {
+      message.error('You must be logged in to create an assistant.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const payload = {
+        name: values.name,
+        database_url: values.dbUrl || null,
+        version: values.versionTag || null,
+        stage: values.stage || null,
+        model: values.model,
+        is_local: values.executionType === 'on-premise',
+      };
+
+      const response = await createAssistant(keycloak, payload);
+      message.success(`Assistant '${response.name}' created successfully!`);
+      form.resetFields();
+      setSelectedModel(null);
+      setSelectedExecutionType(null);
+      setFileList([]);
+    } catch (err) {
+      message.error(`Failed to create assistant: ${err.message || 'Unknown error'}`);
+      console.error('Create assistant error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <Breadcrumb
@@ -78,7 +109,8 @@ const AddModel = () => {
         <Form
           form={form}
           layout="vertical"
-          onFinish={(values) => console.log('Form values:', values)}
+          onFinish={onFinish}
+          
           style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}
         >
           <Title level={3}>1. Model Configuration</Title>

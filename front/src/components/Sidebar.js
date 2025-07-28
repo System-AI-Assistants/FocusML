@@ -43,7 +43,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
           <Link to="/experiments">Experiments</Link>
         </Menu.Item>
         <Menu.Item key="/models" icon={<AppstoreOutlined />}>
-          <Link to="/models">Models</Link>
+          <Link to="/models">Assistants</Link>
         </Menu.Item>
         <Menu.Item key="/monitoring" icon={<BarChartOutlined />}>
           <Link to="/monitoring">Monitoring</Link>

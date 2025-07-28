@@ -7,7 +7,7 @@ import logging
 
 Base = declarative_base()
 
-
+# TODO: add model provider. e.g. Ollama
 class ModelFamily(Base):
     __tablename__ = 'model_families'
 
