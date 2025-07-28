@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Table, Button, Space, Typography, Tag, message, Modal, List } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, CodeSandboxOutlined, ApiOutlined, MessageOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, CodeSandboxOutlined, ApiOutlined, MessageOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';
 import { useNavigate } from 'react-router-dom';
-import { getAssistants, getAssistantEndpoints } from '../services/api';
+import { getAssistants, getAssistantEndpoints, runAssistant, stopAssistant } from '../services/api';
 import './Models.css';
 
 const { Title } = Typography;
@@ -64,9 +64,31 @@ function Assistants() {
     setEndpoints([]);
   };
 
+  const handleRunAssistant = async (assistantId) => {
+    try {
+      await runAssistant(keycloak, assistantId);
+      message.success('Assistant started successfully.');
+      await fetchAssistants();
+    } catch (err) {
+      message.error(`Failed to start assistant: ${err.message || 'Unknown error'}`);
+      console.error('Run assistant error:', err);
+    }
+  };
+
+  const handleStopAssistant = async (assistantId) => {
+    try {
+      await stopAssistant(keycloak, assistantId);
+      message.success('Assistant stopped successfully.');
+      await fetchAssistants();
+    } catch (err) {
+      message.error(`Failed to stop assistant: ${err.message || 'Unknown error'}`);
+      console.error('Stop assistant error:', err);
+    }
+  };
+
   const handleDelete = async (id) => {
     message.warning('Delete functionality not implemented yet.');
-    // If a delete endpoint is added, implement it here:
+    // Placeholder for delete endpoint:
     /*
     try {
       await axios.delete(`${API_URL}/api/assistants/${id}`, {
@@ -125,6 +147,16 @@ function Assistants() {
       ),
     },
     {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'running' ? 'green' : status === 'stopped' ? 'red' : status === 'error' ? 'volcano' : 'default'}>
+          {status ? status.toUpperCase() : 'N/A'}
+        </Tag>
+      ),
+    },
+    {
       title: 'Created',
       dataIndex: 'create_time',
       key: 'create_time',
@@ -144,6 +176,18 @@ function Assistants() {
             icon={<ApiOutlined />}
             onClick={() => handleViewEndpoints(record)}
             title="View API Endpoints"
+          />
+          <Button
+            icon={<PlayCircleOutlined />}
+            onClick={() => handleRunAssistant(record.id)}
+            disabled={record.status === 'running'}
+            title="Run Assistant"
+          />
+          <Button
+            icon={<StopOutlined />}
+            onClick={() => handleStopAssistant(record.id)}
+            disabled={record.status !== 'running'}
+            title="Stop Assistant"
           />
           <Button icon={<EditOutlined />} disabled title="Edit functionality not implemented" />
           <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />

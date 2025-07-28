@@ -175,7 +175,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 # --- API Endpoints ---
-@app.get("/api/users", dependencies=[Depends(get_current_user)])
+@app.get("/api/users", dependencies=[Depends(get_current_user)], tags=["Users"])
 def get_users():
     """Retrieve all users from the Keycloak realm."""
     print("Getting users endpoint called")
@@ -196,7 +196,7 @@ def get_users():
         raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
 
 
-@app.post("/api/users", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
+@app.post("/api/users", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)], tags=["Users"])
 def create_user(user: UserCreate):
     """Create a new user in the Keycloak realm."""
 
@@ -224,7 +224,7 @@ def create_user(user: UserCreate):
         raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
-@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)])
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)], tags=["User"])
 def delete_user(user_id: str):
     """Delete a user from the Keycloak realm by their ID."""
     keycloak_admin = get_keycloak_admin()
@@ -243,7 +243,7 @@ def root():
     return {"message": "FocusML Platform API is running."}
 
 
-@app.get("/api/ollama-models", dependencies=[Depends(get_current_user)])
+@app.get("/api/ollama-models", dependencies=[Depends(get_current_user)], tags=["Models"])
 def get_models():
     """Retrieve all model families and their models from the database in the original JSON format."""
     try:
@@ -271,7 +271,7 @@ def get_models():
     except SQLAlchemyError as e:
         print(f"Error fetching models: {e}, type: {type(e)}")
 
-@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
+@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)], tags=["Assistants"])
 def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_current_user)):
     """Create a new assistant in the database."""
     try:

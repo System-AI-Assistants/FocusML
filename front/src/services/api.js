@@ -110,3 +110,45 @@ export const getAssistantEndpoints = async (keycloak, assistantId) => {
 
   return await response.json();
 };
+
+export const runAssistant = async (keycloak, assistantId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/run`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to run assistant');
+  }
+
+  return await response.json();
+};
+
+export const stopAssistant = async (keycloak, assistantId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/stop`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to stop assistant');
+  }
+
+  return await response.json();
+};
