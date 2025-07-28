@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8000';
 
 export const getModelFams = async (keycloak) => {
   if (!keycloak) {
@@ -10,7 +10,7 @@ export const getModelFams = async (keycloak) => {
       throw new Error('User is not authenticated');
     }
     console.log('Fetching models with token:', keycloak.token.substring(0, 20) + '...'); // Log partial token
-    const response = await fetch(`${BASE_URL}/api/ollama-models/`, {
+    const response = await fetch(`${API_BASE_URL}/api/ollama-models/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ export const createAssistant = async (keycloak, payload) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${BASE_URL}/api/assistants`, {
+  const response = await fetch(`${API_BASE_URL}/api/assistants`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -64,6 +64,48 @@ export const createAssistant = async (keycloak, payload) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to create assistant');
+  }
+
+  return await response.json();
+};
+
+export const getAssistants = async (keycloak) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/assistants`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch assistants');
+  }
+
+  return await response.json();
+};
+
+export const getAssistantEndpoints = async (keycloak, assistantId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/endpoints`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch assistant endpoints');
   }
 
   return await response.json();

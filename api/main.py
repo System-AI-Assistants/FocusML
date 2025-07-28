@@ -132,8 +132,12 @@ class AssistantResponse(BaseModel):
     model: str
     is_local: bool
     create_time: str
-    lastedit_time: str
+    last_modified: str
 
+class AssistantEndpointResponse(BaseModel):
+    endpoint: str
+    method: str
+    description: str
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -325,13 +329,46 @@ def get_assistants():
                     "model": assistant.model,
                     "is_local": assistant.is_local,
                     "create_time": assistant.create_time.isoformat() if assistant.create_time else None,
-                    "lastedit_time": assistant.lastedit_time.isoformat() if assistant.lastedit_time else None
+                    "last_modified": assistant.last_modified.isoformat() if assistant.last_modified else None
                 }
                 for assistant in assistants
             ]
             return result
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch assistants: {str(e)}")
+
+
+@app.get("/api/assistants/{assistant_id}/endpoints", response_model=list[AssistantEndpointResponse],
+         dependencies=[Depends(get_current_user)])
+def get_assistant_endpoints(assistant_id: int):
+    """Retrieve API endpoints for a specific assistant."""
+    try:
+        with SessionLocal() as session:
+            assistant = session.query(Assistant).filter_by(id=assistant_id).first()
+            if not assistant:
+                raise HTTPException(status_code=404, detail="Assistant not found")
+
+            # Placeholder endpoints (customize as needed)
+            endpoints = [
+                {
+                    "endpoint": f"/api/assistants/{assistant_id}/chat",
+                    "method": "POST",
+                    "description": "Send a message to the assistant and receive a response."
+                },
+                {
+                    "endpoint": f"/api/assistants/{assistant_id}/completions",
+                    "method": "POST",
+                    "description": "Traditional prompt completion."
+                },
+                {
+                    "endpoint": f"/api/assistants/{assistant_id}/status",
+                    "method": "GET",
+                    "description": "Check the status and availability of the assistant."
+                }
+            ]
+            return endpoints
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch assistant endpoints: {str(e)}")
 
 # To run the app: uvicorn main:app --reload
 if __name__ == "__main__":

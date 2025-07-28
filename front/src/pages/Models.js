@@ -1,73 +1,84 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, Table, Button, Modal, Form, Input, Select, Space, Typography, Tag, message } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, CodeSandboxOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Space, Typography, Tag, message, Modal, List } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, CodeSandboxOutlined, ApiOutlined, MessageOutlined } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
+import { getAssistants, getAssistantEndpoints } from '../services/api';
 import './Models.css';
 
-
 const { Title } = Typography;
-const { Option } = Select;
 
-const API_URL = 'http://localhost:8000/api';
-
-function Models() {
+function Assistants() {
   const { keycloak, initialized } = useKeycloak();
-  const [models, setModels] = useState([]);
+  const navigate = useNavigate();
+  const [assistants, setAssistants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [isEndpointsModalVisible, setIsEndpointsModalVisible] = useState(false);
+  const [selectedAssistant, setSelectedAssistant] = useState(null);
+  const [endpoints, setEndpoints] = useState([]);
+  const [endpointsLoading, setEndpointsLoading] = useState(false);
 
-  const fetchModels = useCallback(async () => {
+  const fetchAssistants = useCallback(async () => {
     if (initialized && keycloak.authenticated) {
       try {
         setLoading(true);
-        const resp = await axios.get(`${API_URL}/models`, {
-          headers: { Authorization: `Bearer ${keycloak.token}` },
-        });
-        setModels(resp.data);
+        const data = await getAssistants(keycloak);
+        setAssistants(data);
       } catch (err) {
-        message.error('Failed to fetch models.');
-        console.error(err);
+        message.error('Failed to fetch assistants.');
+        console.error('Fetch assistants error:', err);
       } finally {
         setLoading(false);
       }
+    } else {
+      console.warn('Keycloak not initialized or not authenticated');
     }
   }, [initialized, keycloak]);
 
   useEffect(() => {
-    fetchModels();
-  }, [fetchModels]);
+    fetchAssistants();
+  }, [fetchAssistants]);
 
-  const showModal = () => setIsModalVisible(true);
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
+  const handleOpenChat = (assistantId) => {
+    navigate(`/chat/${assistantId}`);
   };
 
-  const handleAddModel = async values => {
+  const handleViewEndpoints = async (assistant) => {
+    setSelectedAssistant(assistant);
+    setIsEndpointsModalVisible(true);
+    setEndpointsLoading(true);
     try {
-      await axios.post(`${API_URL}/models`, values, { headers: { Authorization: `Bearer ${keycloak.token}` } });
-      message.success('Model added successfully');
-      fetchModels();
-      handleCancel();
+      const data = await getAssistantEndpoints(keycloak, assistant.id);
+      setEndpoints(data);
     } catch (err) {
-      message.error('Failed to add model');
-      console.error(err);
+      message.error('Failed to fetch API endpoints.');
+      console.error('Fetch endpoints error:', err);
+    } finally {
+      setEndpointsLoading(false);
     }
   };
 
-  const handleDelete = async id => {
+  const handleEndpointsModalClose = () => {
+    setIsEndpointsModalVisible(false);
+    setSelectedAssistant(null);
+    setEndpoints([]);
+  };
+
+  const handleDelete = async (id) => {
+    message.warning('Delete functionality not implemented yet.');
+    // If a delete endpoint is added, implement it here:
+    /*
     try {
-      await axios.delete(`${API_URL}/models/${id}`, { headers: { Authorization: `Bearer ${keycloak.token}` } });
-      message.success('Model deleted');
-      fetchModels();
+      await axios.delete(`${API_URL}/api/assistants/${id}`, {
+        headers: { Authorization: `Bearer ${keycloak.token}` },
+      });
+      message.success('Assistant deleted');
+      fetchAssistants();
     } catch (err) {
-      message.error('Failed to delete model');
-      console.error(err);
+      message.error('Failed to delete assistant');
+      console.error('Delete assistant error:', err);
     }
+    */
   };
 
   const columns = [
@@ -86,65 +97,105 @@ function Models() {
       title: 'Version',
       dataIndex: 'version',
       key: 'version',
+      render: (version) => version || 'N/A',
     },
     {
-      title: 'Framework',
-      dataIndex: 'framework',
-      key: 'framework',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: status => (
-        <Tag color={status === 'active' ? 'green' : 'orange'}>{status.toUpperCase()}</Tag>
+      title: 'Stage',
+      dataIndex: 'stage',
+      key: 'stage',
+      render: (stage) => (
+        <Tag color={stage === 'production' ? 'green' : stage === 'staging' ? 'blue' : 'orange'}>
+          {stage ? stage.toUpperCase() : 'N/A'}
+        </Tag>
       ),
     },
     {
+      title: 'Model',
+      dataIndex: 'model',
+      key: 'model',
+    },
+    {
+      title: 'Location',
+      dataIndex: 'is_local',
+      key: 'is_local',
+      render: (is_local) => (
+        <Tag color={is_local ? 'purple' : 'cyan'}>
+          {is_local ? 'Local' : 'Cloud'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'create_time',
+      key: 'create_time',
+      render: (create_time) => new Date(create_time).toLocaleDateString(),
+    },
+    {
+      title: 'Actions',
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button icon={<EditOutlined />} />
+          <Button
+            icon={<MessageOutlined />}
+            onClick={() => handleOpenChat(record.id)}
+            title="Open Chat"
+          />
+          <Button
+            icon={<ApiOutlined />}
+            onClick={() => handleViewEndpoints(record)}
+            title="View API Endpoints"
+          />
+          <Button icon={<EditOutlined />} disabled title="Edit functionality not implemented" />
           <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
         </Space>
       ),
     },
   ];
 
-  const navigate = useNavigate();
-
   return (
     <div className="models-page-container">
       <div className="models-page-header">
-        <Title level={2} style={{ margin: 0 }}>Models</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/models/add')}>Add Model</Button>
+        <Title level={2} style={{ margin: 0 }}>Assistants</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/models/add')}>
+          Add Assistant
+        </Button>
       </div>
       <Card className="modern-card">
         <Table
-          dataSource={models}
+          dataSource={assistants}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 10 }}
           loading={loading}
         />
       </Card>
-
-      <Modal title="Add New Model" open={isModalVisible} onCancel={handleCancel} footer={null} width={420}>
-        <Form form={form} layout="vertical" onFinish={handleAddModel} style={{ marginTop: 16 }}>
-          <Form.Item name="name" label="Model Name" rules={[{ required: true }]}> <Input placeholder="e.g. sentiment-classifier" /> </Form.Item>
-          <Form.Item name="version" label="Version" rules={[{ required: true }]}> <Input placeholder="e.g. 1.0.0" /> </Form.Item>
-          <Form.Item name="framework" label="Framework" rules={[{ required: true }]}> <Select placeholder="Select framework"> <Option value="tensorflow">TensorFlow</Option><Option value="pytorch">PyTorch</Option><Option value="sklearn">scikit-learn</Option></Select> </Form.Item>
-          <Form.Item name="status" label="Status" initialValue="active"> <Select> <Option value="active">Active</Option><Option value="staging">Staging</Option></Select> </Form.Item>
-          <Form.Item style={{ textAlign: 'right', marginTop: 24 }}>
-            <Space>
-              <Button onClick={handleCancel}>Cancel</Button>
-              <Button type="primary" htmlType="submit">Create</Button>
-            </Space>
-          </Form.Item>
-        </Form>
+      <Modal
+        title={`API Endpoints for ${selectedAssistant?.name || 'Assistant'}`}
+        open={isEndpointsModalVisible}
+        onCancel={handleEndpointsModalClose}
+        footer={null}
+        width={600}
+      >
+        {endpointsLoading ? (
+          <div>Loading endpoints...</div>
+        ) : endpoints.length > 0 ? (
+          <List
+            dataSource={endpoints}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={<span><Tag>{item.method}</Tag> {item.endpoint}</span>}
+                  description={item.description}
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div>No endpoints available.</div>
+        )}
       </Modal>
     </div>
   );
 }
 
-export default Models;
+export default Assistants;
