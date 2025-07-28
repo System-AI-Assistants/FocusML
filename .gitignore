@@ -5,3 +5,4 @@ db
 .env.keycloak
 .env.appdb
 .idea/
+.env.testdata.db

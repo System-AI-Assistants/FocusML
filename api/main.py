@@ -122,6 +122,18 @@ class AssistantCreate(BaseModel):
     model: str
     is_local: bool = False
 
+class AssistantResponse(BaseModel):
+    id: int
+    name: str
+    owner: str
+    database_url: str
+    version: str
+    stage: str
+    model: str
+    is_local: bool
+    create_time: str
+    lastedit_time: str
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -289,11 +301,37 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
                 "model": db_assistant.model,
                 "is_local": db_assistant.is_local,
                 "create_time": db_assistant.create_time.isoformat(),
-                "lastedit_time": db_assistant.lastedit_time.isoformat()
+                "last_modified": db_assistant.last_modified.isoformat()
             }
             return response
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
+
+
+@app.get("/api/assistants", response_model=list[AssistantResponse], dependencies=[Depends(get_current_user)])
+def get_assistants():
+    """Retrieve all assistants from the database."""
+    try:
+        with SessionLocal() as session:
+            assistants = session.query(Assistant).all()
+            result = [
+                {
+                    "id": assistant.id,
+                    "name": assistant.name,
+                    "owner": assistant.owner,
+                    "database_url": assistant.database_url,
+                    "version": assistant.version,
+                    "stage": assistant.stage,
+                    "model": assistant.model,
+                    "is_local": assistant.is_local,
+                    "create_time": assistant.create_time.isoformat() if assistant.create_time else None,
+                    "lastedit_time": assistant.lastedit_time.isoformat() if assistant.lastedit_time else None
+                }
+                for assistant in assistants
+            ]
+            return result
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch assistants: {str(e)}")
 
 # To run the app: uvicorn main:app --reload
 if __name__ == "__main__":

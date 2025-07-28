@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
 import { Breadcrumb, Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col, Tag, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
@@ -24,6 +25,7 @@ const executionTypeOptions = [
 
 const AddModel = () => {
   const { keycloak, initialized } = useKeycloak();
+  const navigate = useNavigate();
   const [modelFamilies, setModelFamilies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [form] = Form.useForm();
@@ -63,8 +65,7 @@ const AddModel = () => {
   })));
 
   const filteredModels = allModels.filter(model =>
-    model.name.toLowerCase().includes(searchTerm.toLowerCase()) 
-  
+    model.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const onSelectExecutionType = (key) => {
@@ -99,6 +100,7 @@ const AddModel = () => {
       setSelectedModel(null);
       setSelectedExecutionType(null);
       setFileList([]);
+      navigate('/models');
     } catch (err) {
       message.error(`Failed to create assistant: ${err.message || 'Unknown error'}`);
       console.error('Create assistant error:', err);
@@ -144,7 +146,7 @@ const AddModel = () => {
                     onClick={() => onSelectExecutionType(key)}
                     style={{
                       cursor: 'pointer',
-                      borderColor: selectedExecutionType === key ? '#1890ff' : undefined,
+                      borderColor: selectedExecutionType === key ? '#1890ff' : '#d9d9d9',
                       borderWidth: selectedExecutionType === key ? 2 : 1,
                       padding: 8,
                     }}
@@ -159,7 +161,7 @@ const AddModel = () => {
                         <Title level={5} style={{ marginBottom: 4, marginTop: 0 }}>
                           {title}
                         </Title>
-                        <p style={{ margin: 0, color: 'rgba(0,0,0,0.65)' }}>{description}</p>
+                        <p style={{時計: 'rgba(0,0,0,0.65)' }}>{description}</p>
                       </div>
                     </div>
                   </Card>
@@ -189,14 +191,15 @@ const AddModel = () => {
                 <Col span={24} key={model.name}>
                   <Card
                     hoverable
-                    bordered={selectedModel !== model.name}
+                    style={{
+                      cursor: 'pointer',
+                      borderColor: selectedModel === model.name ? '#1890ff' : '#d9d9d9',
+                      borderWidth: selectedModel === model.name ? 2 : 1,
+                      padding: 8,
+                    }}
                     onClick={() => {
                       setSelectedModel(model.name);
                       form.setFieldsValue({ model: model.name });
-                    }}
-                    style={{
-                      cursor: 'pointer',
-                      borderColor: selectedModel === model.name ? '#1890ff' : undefined,
                     }}
                   >
                     <h2 className="model-name" style={{ marginTop: 0 }}>
