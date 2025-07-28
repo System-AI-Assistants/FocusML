@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
 import Models from './pages/Models';
 import AddModel from './pages/AddModel';
+import Chat from './pages/Chat';
+
 import './App.css';
 
 const { Content } = Layout;
@@ -36,7 +38,7 @@ function App() {
               <Route path="/users" element={<UserManagement />} />
               <Route path="/models" element={<Models />} />
               <Route path="/models/add" element={<AddModel />} />
-              {/* Add other routes for experiments, models, etc. here */}
+              <Route path="/chat/:assistantId" element={<Chat />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Content>

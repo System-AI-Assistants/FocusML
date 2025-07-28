@@ -152,3 +152,31 @@ export const stopAssistant = async (keycloak, assistantId) => {
 
   return await response.json();
 };
+
+
+export const sendChatMessage = async (keycloak, assistantId, messages) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/chat`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages,
+      max_tokens: 512,
+      temperature: 0.7,
+      top_p: 0.9
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to send chat message');
+  }
+
+  return await response.json();
+};

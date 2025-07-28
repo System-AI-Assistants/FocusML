@@ -1,19 +1,21 @@
 import os
 
+import mlflow
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from keycloak import KeycloakAdmin, KeycloakOpenID
+from mlflow.models import set_model
+from mlflow.types.llm import ChatMessage
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
-from sqlalchemy.exc import SQLAlchemyError
-
+from sqlalchemy import DateTime, func
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+
+from api.ollama_model import OllamaModel
 
 Base = declarative_base()
 
@@ -54,6 +56,7 @@ class Assistant(Base):
     model = Column(String(255), nullable=False)
     is_local = Column(Boolean, default=False)
     status = Column(String(50))
+    mlflow_run_id = Column(String(255))
     create_time = Column(DateTime, server_default=func.now())
     last_modified = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -67,6 +70,10 @@ KEYCLOAK_ADMIN_NAME = os.getenv("KEYCLOAK_ADMIN_NAME")
 KEYCLOAK_ADMIN_PASSWORD = os.getenv("KEYCLOAK_ADMIN_PASSWORD")
 KEYCLOAK_ADMIN_CLIENT_SECRET = os.getenv("KEYCLOAK_ADMIN_CLIENT_SECRET")
 KEYCLOAK_FRONTEND_CLIENT_ID = os.getenv("KEYCLOAK_FRONTEND_CLIENT_ID")
+
+# MLflow configuration
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 app = FastAPI(
     title="FocusML Platform Backend",
@@ -123,6 +130,7 @@ class AssistantCreate(BaseModel):
     model: str
     is_local: bool = False
 
+
 class AssistantResponse(BaseModel):
     id: int
     name: str
@@ -133,13 +141,32 @@ class AssistantResponse(BaseModel):
     model: str
     is_local: bool
     status: str
+    mlflow_run_id: str
     create_time: str
     last_modified: str
+
 
 class AssistantEndpointResponse(BaseModel):
     endpoint: str
     method: str
     description: str
+
+class ChatMessageRequest(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessageRequest]
+    max_tokens: int = None
+    temperature: float = None
+    top_p: float = None
+    stop: list[str] = None
+    custom_inputs: dict = None
+
+class ChatResponse(BaseModel):
+    choices: list[dict]
+    model: str
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -226,7 +253,8 @@ def create_user(user: UserCreate):
         raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
-@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)], tags=["Users"])
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_current_user)],
+            tags=["Users"])
 def delete_user(user_id: str):
     """Delete a user from the Keycloak realm by their ID."""
     keycloak_admin = get_keycloak_admin()
@@ -273,7 +301,9 @@ def get_models():
     except SQLAlchemyError as e:
         print(f"Error fetching models: {e}, type: {type(e)}")
 
-@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)], tags=["Assistants"])
+
+@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)],
+          tags=["Assistants"])
 def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_current_user)):
     """Create a new assistant in the database."""
     try:
@@ -282,7 +312,6 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
             model = session.query(Model).filter_by(name=assistant.model).first()
             if not model:
                 raise HTTPException(status_code=400, detail=f"Model '{assistant.model}' not found")
-
 
             db_assistant = Assistant(
                 name=assistant.name,
@@ -298,6 +327,24 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
             session.commit()
             session.refresh(db_assistant)
 
+            try:
+                with mlflow.start_run(run_name=f"assistant-{db_assistant.id}") as run:
+                    ollama_model = OllamaModel()
+                    set_model(ollama_model)
+                    mlflow.log_param("model_name", ollama_model.model_name)
+                    mlflow.pyfunc.log_model(
+                        artifact_path="model",
+                        python_model=ollama_model,
+                        pip_requirements=["mlflow", "ollama"]
+                    )
+                    db_assistant.mlflow_run_id = run.info.run_id
+                    session.commit()
+
+            except Exception as e:
+                session.delete(db_assistant)
+                session.commit()
+                raise HTTPException(status_code=500, detail=f"Failed to log model to MLflow: {str(e)}")
+
             response = {
                 "id": db_assistant.id,
                 "name": db_assistant.name,
@@ -308,6 +355,7 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
                 "model": db_assistant.model,
                 "is_local": db_assistant.is_local,
                 "status": db_assistant.status,
+                "mlflow_run_id": db_assistant.mlflow_run_id,
                 "create_time": db_assistant.create_time.isoformat(),
                 "last_modified": db_assistant.last_modified.isoformat()
             }
@@ -316,7 +364,8 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
 
 
-@app.get("/api/assistants", response_model=list[AssistantResponse], dependencies=[Depends(get_current_user)], tags=["Assistants"])
+@app.get("/api/assistants", response_model=list[AssistantResponse], dependencies=[Depends(get_current_user)],
+         tags=["Assistants"])
 def get_assistants():
     """Retrieve all assistants from the database."""
     try:
@@ -333,6 +382,7 @@ def get_assistants():
                     "model": assistant.model,
                     "is_local": assistant.is_local,
                     "status": assistant.status,
+                    "mlflow_run_id": assistant.mlflow_run_id,
                     "create_time": assistant.create_time.isoformat() if assistant.create_time else None,
                     "last_modified": assistant.last_modified.isoformat() if assistant.last_modified else None
                 }
@@ -403,6 +453,7 @@ def run_assistant(assistant_id: int):
                 "model": assistant.model,
                 "is_local": assistant.is_local,
                 "status": assistant.status,
+                "mlflow_run_id": assistant.mlflow_run_id,
                 "create_time": assistant.create_time.isoformat(),
                 "last_modified": assistant.last_modified.isoformat()
             }
@@ -438,12 +489,59 @@ def stop_assistant(assistant_id: int):
                 "model": assistant.model,
                 "is_local": assistant.is_local,
                 "status": assistant.status,
+                "mlflow_run_id": assistant.mlflow_run_id,
                 "create_time": assistant.create_time.isoformat(),
                 "last_modified": assistant.last_modified.isoformat()
             }
             return response
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop assistant: {str(e)}")
+
+
+@app.post("/api/assistants/{assistant_id}/chat", response_model=ChatResponse, dependencies=[Depends(get_current_user)],
+          tags=["Chat"])
+def chat_with_assistant(assistant_id: int, request: ChatRequest):
+    """Chat with an assistant using its MLflow-logged model."""
+    try:
+        with SessionLocal() as session:
+            assistant = session.query(Assistant).filter_by(id=assistant_id).first()
+            if not assistant:
+                raise HTTPException(status_code=404, detail="Assistant not found")
+            if not assistant.mlflow_run_id:
+                raise HTTPException(status_code=400, detail="Assistant has no associated MLflow model")
+
+
+            try:
+                model = mlflow.pyfunc.load_model(f"runs:/{assistant.mlflow_run_id}/model")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to load MLflow model: {str(e)}")
+
+            # Convert messages to MLflow format
+            messages = [ChatMessage(role=msg.role, content=msg.content) for msg in request.messages]
+            params = {
+                "max_tokens": request.max_tokens,
+                "temperature": request.temperature,
+                "top_p": request.top_p,
+                "stop": request.stop,
+                "custom_inputs": request.custom_inputs
+            }
+
+            # Call model's predict method
+            response = model.predict(None, messages, params)
+            return ChatResponse(
+                choices=[
+                    {
+                        "index": choice.index,
+                        "message": {
+                            "role": choice.message.role,
+                            "content": choice.message.content
+                        }
+                    } for choice in response.choices
+                ],
+                model=response.model
+            )
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process chat: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
