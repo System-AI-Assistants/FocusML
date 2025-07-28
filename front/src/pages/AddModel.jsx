@@ -24,7 +24,7 @@ const executionTypeOptions = [
 
 const AddModel = () => {
   const { keycloak, initialized } = useKeycloak();
-  const [modelFamilies, setFamily] = useState([]);
+  const [modelFamilies, setModelFamilies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [form] = Form.useForm();
   const [selectedModel, setSelectedModel] = useState(null);
@@ -37,7 +37,7 @@ const AddModel = () => {
       setIsLoading(true);
       try {
         const fams = await getModelFams(keycloak);
-        setFamily(fams);
+        setModelFamilies(fams);
       } catch (err) {
         message.error('Failed to fetch models. Is your backend running?');
         console.error('Fetch models error:', err);
@@ -53,8 +53,18 @@ const AddModel = () => {
     fetchModels();
   }, [fetchModels]);
 
-  const filteredModels = modelFamilies.filter(m =>
-    m.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Flatten models from all families for filtering
+  const allModels = modelFamilies.flatMap(family => family.models.map(model => ({
+    ...model,
+    familyTitle: family.title,
+    familyDescription: family.description,
+    familyIcon: family.icon,
+    familyUrl: family.url,
+  })));
+
+  const filteredModels = allModels.filter(model =>
+    model.name.toLowerCase().includes(searchTerm.toLowerCase()) 
+  
   );
 
   const onSelectExecutionType = (key) => {
@@ -102,7 +112,7 @@ const AddModel = () => {
       <Breadcrumb
         items={[
           { title: <a href="/models">Models</a> },
-          { title: 'Add Model' },
+          { title: 'Add Assistant' },
         ]}
       />
       <div className="add-model-div">
@@ -110,10 +120,9 @@ const AddModel = () => {
           form={form}
           layout="vertical"
           onFinish={onFinish}
-          
           style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}
         >
-          <Title level={3}>1. Model Configuration</Title>
+          <Title level={3}>1. Assistant Configuration</Title>
 
           <Form.Item
             label={
@@ -168,57 +177,49 @@ const AddModel = () => {
           </Form.Item>
 
           {isLoading && <div>Loading models...</div>}
-          <Row gutter={[16, 16]}>
-            <div
-              style={{
-                height: 400,
-                overflowY: 'auto',
-                padding: 8,
-              
-              }}
-            >
-              <Row gutter={[16, 16]}>
-                {filteredModels.map((model) => (
-                  <Col span={24} key={model.id || model.key}>
-                    <Card
-                      hoverable
-                      bordered={selectedModel !== (model.key || model.id)}
-                      onClick={() => {
-                        setSelectedModel(model.key || model.id);
-                        form.setFieldsValue({ model: model.key || model.id });
-                      }}
-                      style={{
-                        cursor: 'pointer',
-                        borderColor: selectedModel === (model.key || model.id) ? '#1890ff' : undefined,
-                      }}
-                    >
-                      <h2 className="model-name" style={{ marginTop: 0 }}>
-                        {model.icon && (
-                          <img
-                            src={model.icon}
-                            alt="icon"
-                            height="32"
-                            style={{ verticalAlign: 'middle', marginRight: 8 }}
-                          />
-                        )}
-                        {model.name}
-                      </h2>
-                      <Divider />
-                      <p>{model.description}</p>
-                      {model.tags &&
-                        model.tags.map((tag) => (
-                          <Tag key={tag} color="blue">
-                            {tag}
-                          </Tag>
-                        ))}
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            </div>
-            
-
-          </Row>
+          <div
+            style={{
+              height: 400,
+              overflowY: 'auto',
+              padding: 8,
+            }}
+          >
+            <Row gutter={[16, 16]}>
+              {filteredModels.map((model) => (
+                <Col span={24} key={model.name}>
+                  <Card
+                    hoverable
+                    bordered={selectedModel !== model.name}
+                    onClick={() => {
+                      setSelectedModel(model.name);
+                      form.setFieldsValue({ model: model.name });
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      borderColor: selectedModel === model.name ? '#1890ff' : undefined,
+                    }}
+                  >
+                    <h2 className="model-name" style={{ marginTop: 0 }}>
+                      {model.familyIcon && (
+                        <img
+                          src={model.familyIcon}
+                          alt="icon"
+                          height="32"
+                          style={{ verticalAlign: 'middle', marginRight: 8 }}
+                        />
+                      )}
+                      {model.name} ({model.familyTitle})
+                    </h2>
+                    <Divider />
+                    <p>{model.familyDescription}</p>
+                    <Tag color="blue">{model.size}</Tag>
+                    <Tag color="blue">{model.context}</Tag>
+                    <Tag color="blue">{model.input}</Tag>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </div>
 
           <Form.Item name="model" hidden rules={[{ required: true, message: 'Please select a model' }]}>
             <Input type="hidden" />
@@ -226,7 +227,11 @@ const AddModel = () => {
 
           <Divider />
           <Title level={3}>2. General</Title>
-          <Form.Item label="Assistant Name" name="name" rules={[{ required: true }]}>
+          <Form.Item
+            label="Assistant Name"
+            name="name"
+            rules={[{ required: true, message: 'Please enter an assistant name' }]}
+          >
             <Input placeholder="e.g., LegalSummarizer-v1" />
           </Form.Item>
 
@@ -296,7 +301,7 @@ const AddModel = () => {
 
           <Divider />
           <Form.Item>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" loading={isLoading}>
               Create Assistant
             </Button>
           </Form.Item>
