@@ -7,7 +7,6 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from keycloak import KeycloakAdmin, KeycloakOpenID
-from mlflow.models import set_model
 from mlflow.types.llm import ChatMessage
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import DateTime, func
@@ -302,20 +301,21 @@ def get_models():
         print(f"Error fetching models: {e}, type: {type(e)}")
 
 
-@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)],
-          tags=["Assistants"])
+@app.post("/api/assistants", status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)], tags=["Assistants"])
 def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_current_user)):
     """Create a new assistant in the database."""
+
     try:
         with SessionLocal() as session:
             # Validate model exists
             model = session.query(Model).filter_by(name=assistant.model).first()
             if not model:
+
                 raise HTTPException(status_code=400, detail=f"Model '{assistant.model}' not found")
 
             db_assistant = Assistant(
                 name=assistant.name,
-                owner=token_info['sub'],  # Keycloak user ID
+                owner=token_info.get('sub'),
                 database_url=assistant.database_url,
                 version=assistant.version,
                 stage=assistant.stage,
@@ -330,17 +330,20 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
             try:
                 with mlflow.start_run(run_name=f"assistant-{db_assistant.id}") as run:
                     ollama_model = OllamaModel()
-                    set_model(ollama_model)
-                    mlflow.log_param("model_name", ollama_model.model_name)
+
+                    mlflow.log_param("model_name", assistant.model)
                     mlflow.pyfunc.log_model(
                         artifact_path="model",
                         python_model=ollama_model,
+                        code_paths=["api/ollama_model.py"],  # Include code for reference
+                        artifacts={"model_name": assistant.model},
                         pip_requirements=["mlflow", "ollama"]
                     )
                     db_assistant.mlflow_run_id = run.info.run_id
                     session.commit()
 
             except Exception as e:
+
                 session.delete(db_assistant)
                 session.commit()
                 raise HTTPException(status_code=500, detail=f"Failed to log model to MLflow: {str(e)}")
@@ -359,8 +362,10 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
                 "create_time": db_assistant.create_time.isoformat(),
                 "last_modified": db_assistant.last_modified.isoformat()
             }
+
             return response
     except SQLAlchemyError as e:
+
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
 
 
