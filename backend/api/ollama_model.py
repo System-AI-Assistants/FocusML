@@ -20,7 +20,7 @@ class OllamaModel(ChatModel):
         self.client = None
 
     def load_context(self, context):
-        self.model_name = "mistral"
+        self.model_name = "mistral:7b"
         self.client = ollama.Client()
 
     def _prepare_options(self, params):

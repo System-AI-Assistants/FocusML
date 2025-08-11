@@ -10,7 +10,7 @@ export const getModelFams = async (keycloak) => {
       throw new Error('User is not authenticated');
     }
     console.log('Fetching models with token:', keycloak.token.substring(0, 20) + '...'); // Log partial token
-    const response = await fetch(`${API_BASE_URL}/api/ollama-models/`, {
+    const response = await fetch(`${API_BASE_URL}/api/models/ollama`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ export const createAssistant = async (keycloak, payload) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants`, {
+  const response = await fetch(`${API_BASE_URL}/api/assistants/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
