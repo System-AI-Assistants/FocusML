@@ -1,60 +1,65 @@
-import mlflow
+from typing import Optional, Dict, Any, List
+import ollama
 from mlflow.pyfunc import ChatModel
 from mlflow.types.llm import ChatMessage, ChatCompletionResponse, ChatChoice
 from mlflow.models import set_model
-import ollama
-from ollama import Options
-
-
-import mlflow
-from mlflow.pyfunc import ChatModel
-from mlflow.types.llm import ChatMessage, ChatCompletionResponse, ChatChoice
-from mlflow.models import set_model
-import ollama
-from ollama import Options
-
 
 class OllamaModel(ChatModel):
     def __init__(self):
-        self.model_name = None
-        self.client = None
+
+        self.model_name: Optional[str] = None
+        self.base_url: str = "http://localhost:11434"
+        self.client: Optional[ollama.Client] = None
 
     def load_context(self, context):
-        self.model_name = "mistral:7b"
-        self.client = ollama.Client()
+        cfg = getattr(context, "model_config", {}) or {}
+        self.model_name = cfg.get("model_name", "mistral:7b")
+        self.base_url   = cfg.get("ollama_host", self.base_url)
+        # Create the client at load-time (not during pickling)
+        self.client = ollama.Client(host=self.base_url)
 
     def _prepare_options(self, params):
-        # Prepare options from params
-        options = {}
-        if params:
-            if params.max_tokens is not None:
-                options["num_predict"] = params.max_tokens
-            if params.temperature is not None:
-                options["temperature"] = params.temperature
-            if params.top_p is not None:
-                options["top_p"] = params.top_p
-            if params.stop is not None:
-                options["stop"] = params.stop
+        opts = {}
+        if not params:
+            return opts
 
-            if params.custom_inputs is not None:
-                options["seed"] = int(params.custom_inputs.get("seed", None))
-
-        return Options(**options)
+        # Accept both dict and ChatParams
+        if isinstance(params, dict):
+            if params.get("max_tokens") is not None:
+                opts["num_predict"] = params["max_tokens"]
+            if params.get("temperature") is not None:
+                opts["temperature"] = params["temperature"]
+            if params.get("top_p") is not None:
+                opts["top_p"] = params["top_p"]
+            if params.get("stop") is not None:
+                opts["stop"] = params["stop"]
+            ci = params.get("custom_inputs") or {}
+            if ci.get("seed") is not None:
+                opts["seed"] = int(ci["seed"])
+        else:
+            # ChatParams object
+            if getattr(params, "max_tokens", None) is not None:
+                opts["num_predict"] = params.max_tokens
+            if getattr(params, "temperature", None) is not None:
+                opts["temperature"] = params.temperature
+            if getattr(params, "top_p", None) is not None:
+                opts["top_p"] = params.top_p
+            if getattr(params, "stop", None) is not None:
+                opts["stop"] = params.stop
+            ci = getattr(params, "custom_inputs", None) or {}
+            if ci.get("seed") is not None:
+                opts["seed"] = int(ci["seed"])
+        return opts
 
     def predict(self, context, messages, params=None):
-        ollama_messages = [
-            {"role": msg.role, "content": msg.content} for msg in messages
-        ]
+        # Accept list[dict] or list[ChatMessage]
+        if messages and not isinstance(messages[0], dict):
+            messages = [{"role": m.role, "content": m.content} for m in messages]
         options = self._prepare_options(params)
-
-        # Call Ollama
-        response = self.client.chat(
-            model=self.model_name, messages=ollama_messages, options=options
-        )
-
-        # Prepare the ChatCompletionResponse
+        resp = self.client.chat(model=self.model_name, messages=messages, options=options)
+        content = resp["message"]["content"]
         return ChatCompletionResponse(
-            choices=[ChatChoice(index=0, message=ChatMessage(role="assistant", content=response["message"].content))],
+            choices=[ChatChoice(index=0, message=ChatMessage(role="assistant", content=content))],
             model=self.model_name,
         )
 

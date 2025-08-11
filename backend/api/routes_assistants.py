@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from mlflow.types.chat import ChatMessage
 from sqlalchemy import func
@@ -41,16 +43,23 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
 
             try:
                 with mlflow.start_run(run_name=f"assistant-{db_assistant.id}") as run:
-                    ollama_model = OllamaModel()
-
-                    mlflow.log_param("model_name", assistant.model)
-                    mlflow.pyfunc.log_model(
-                        artifact_path="model",
-                        python_model=ollama_model,
-                        code_paths=["api/ollama_model.py"],  # Include code for reference
-                        artifacts={"model_name": assistant.model},
-                        pip_requirements=["mlflow", "ollama"]
+                    model_info = mlflow.pyfunc.log_model(
+                        name="model",  # 'artifact_path' is deprecated; use 'name'
+                        python_model="api/ollama_model.py",  # << script file, not an instance
+                        model_config={
+                            "model_name": assistant.model,  # e.g., "mistral:7b"
+                            "ollama_host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+                        },
+                        # Keep dependencies minimal; pin mlflow to a recent version
+                        pip_requirements=[
+                            "mlflow>=2.12.2",  # Models-from-Code availability
+                            "ollama>=0.3.0",
+                        ],
+                        input_example={
+                            "messages": [{"role": "user", "content": "ping"}]
+                        },
                     )
+                    mlflow.log_param("model_name", assistant.model)
                     db_assistant.mlflow_run_id = run.info.run_id
                     session.commit()
 
@@ -227,28 +236,47 @@ def chat_with_assistant(assistant_id: int, request: ChatRequest):
                 raise HTTPException(status_code=500, detail=f"Failed to load MLflow model: {str(e)}")
 
             # Convert messages to MLflow format
-            messages = [ChatMessage(role=msg.role, content=msg.content) for msg in request.messages]
+            messages = [{"role": m.role, "content": m.content} for m in request.messages]
+
             params = {
                 "max_tokens": request.max_tokens,
                 "temperature": request.temperature,
                 "top_p": request.top_p,
-                "stop": request.stop,
-                "custom_inputs": request.custom_inputs
+                "stop": request.stop,  # ensure list[str] or None
+                "custom_inputs": request.custom_inputs,
             }
 
-            # Call model's predict method
-            response = model.predict(None, messages, params)
-            return ChatResponse(
-                choices=[
-                    {
-                        "index": choice.index,
+            # ❌ was: model.predict(messages, params)
+            # ✅ MLflow ChatModel expects data={"messages": [...]}
+            # Call model
+            out = model.predict({"messages": messages}, params)
+
+            # Normalize result to a dict shape your API expects
+            if isinstance(out, dict):
+                model_name = out.get("model") or assistant.model
+                choices_in = out.get("choices", [])
+                choices = []
+                for i, ch in enumerate(choices_in):
+                    msg = ch.get("message") or {}
+                    choices.append({
+                        "index": ch.get("index", i),
                         "message": {
-                            "role": choice.message.role,
-                            "content": choice.message.content
+                            "role": msg.get("role", "assistant"),
+                            "content": msg.get("content", "")
                         }
-                    } for choice in response.choices
-                ],
-                model=response.model
-            )
+                    })
+            else:
+                # Fallback if your model returns a ChatCompletionResponse object
+                model_name = getattr(out, "model", assistant.model)
+                choices = [{
+                    "index": c.index,
+                    "message": {
+                        "role": c.message.role,
+                        "content": c.message.content
+                    }
+                } for c in getattr(out, "choices", [])]
+
+            return ChatResponse(choices=choices, model=model_name)
+
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Failed to process chat: {str(e)}")

@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 import mlflow
 import uvicorn
@@ -10,8 +11,16 @@ from backend.api import routes_users, routes_assistants, routes_models
 
 load_dotenv()
 
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+TMP_DIR = os.getenv("MLFLOW_TMP_DIR", "./.mlflow_tmp")
+pathlib.Path(TMP_DIR).mkdir(parents=True, exist_ok=True)
+os.environ["MLFLOW_TMP_DIR"] = TMP_DIR
+
+
+# MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+# mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+
 
 app = FastAPI(
     title="FocusML Platform Backend",

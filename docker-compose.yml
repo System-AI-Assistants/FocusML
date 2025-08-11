@@ -28,11 +28,11 @@ services:
 
   backend:
     build:
-      context: ./api
+      context: ./backend
       dockerfile: Dockerfile
     container_name: backend
     env_file:
-      - ./api/.env
+      - ./backend/.env
     environment:
       - KEYCLOAK_SERVER_URL=http://keycloak:8080/
     ports:

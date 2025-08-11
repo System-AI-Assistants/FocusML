@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -20,7 +22,7 @@ class AssistantResponse(BaseModel):
     model: str
     is_local: bool
     status: str
-    mlflow_run_id: str
+    mlflow_run_id: Optional[str] = None
     create_time: str
     last_modified: str
 
