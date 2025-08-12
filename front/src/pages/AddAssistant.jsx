@@ -4,7 +4,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import { Breadcrumb, Form, Input, Select, Upload, Radio, Divider, Button, Typography, Tooltip, Card, Row, Col, Tag, message } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 import { getModelFams, createAssistant } from '../services/api';
-import './AddModel.css';
+import './AddAssistant.css';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -111,7 +111,7 @@ const AddModel = () => {
       setSelectedModel(null);
       setSelectedExecutionType(null);
       setFileList([]);
-      navigate('/models');
+      navigate('/assistants');
     } catch (err) {
       message.error(`Failed to create assistant: ${err.message || 'Unknown error'}`);
       console.error('Create assistant error:', err);
@@ -124,7 +124,7 @@ const AddModel = () => {
     <>
       <Breadcrumb
         items={[
-          { title: <a href="/models">Models</a> },
+          { title: <a href="/assistants">Assistants</a> },
           { title: 'Add Assistant' },
         ]}
       />

@@ -127,7 +127,7 @@ function Chat() {
             style={{
               backgroundColor: '#fff',
               border: '1px solid #d9d9d9',
-              padding: 8,            
+              padding: 8,             
               objectFit: 'contain',
             }}
             shape="circle"

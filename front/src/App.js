@@ -6,11 +6,11 @@ import Sidebar from './components/Sidebar';
 import HeaderBar from './components/HeaderBar';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
-import Models from './pages/Models';
-import AddModel from './pages/AddModel';
 import Chat from './pages/Chat';
 
 import './App.css';
+import Assistants from './pages/Assistants';
+import AddAssistant from './pages/AddAssistant'
 
 const { Content } = Layout;
 
@@ -36,8 +36,8 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<UserManagement />} />
-              <Route path="/models" element={<Models />} />
-              <Route path="/models/add" element={<AddModel />} />
+              <Route path="/assistants" element={<Assistants />} />
+              <Route path="/assistants/add" element={<AddAssistant />} />
               <Route path="/chat/:assistantId" element={<Chat />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

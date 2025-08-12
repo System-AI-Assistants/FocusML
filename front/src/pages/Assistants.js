@@ -4,7 +4,7 @@ import { PlusOutlined, DeleteOutlined, EditOutlined, CodeSandboxOutlined, ApiOut
 import { useKeycloak } from '@react-keycloak/web';
 import { useNavigate } from 'react-router-dom';
 import { getAssistants, getAssistantEndpoints, runAssistant, stopAssistant } from '../services/api';
-import './Models.css';
+import './Assistants.css';
 
 const { Title } = Typography;
 
@@ -200,7 +200,7 @@ function Assistants() {
     <div className="models-page-container">
       <div className="models-page-header">
         <Title level={2} style={{ margin: 0 }}>Assistants</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/models/add')}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/assistants/add')}>
           Add Assistant
         </Button>
       </div>
