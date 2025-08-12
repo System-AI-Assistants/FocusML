@@ -4,6 +4,13 @@
 
 FocusML is a platform for managing, benchmarking, routing and monitoring a portfolio of specialized ML models. It bundles a FastAPI backend, a React frontend, and an MLOps stack (MLflow, MinIO, Keycloak, etc) so teams can onboard models, run task-specific benchmarks, route requests to the best model for each task, and keep an eye on quality and drift. 🚀
 
+---
+Author: Adam Terlo  
+Academic Supervisor: Hadi Saleh  
+Higher School of Economics  
+2025
+---
+
 ## Why this exists
 
 Model teams end up with many task-specific models, each with different strengths and costs. FocusML centralizes lifecycle management and decision logic so you can measure agents consistently, pick the best option for a job, and detect performance/regression issues quickly — all with reproducible records in MLflow. This reduces manual overhead and cost leakage while improving reliability. 📈
