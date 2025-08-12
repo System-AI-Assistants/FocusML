@@ -11,6 +11,7 @@ import Chat from './pages/Chat';
 import './App.css';
 import Assistants from './pages/Assistants';
 import AddAssistant from './pages/AddAssistant'
+import Benchmarking from './pages/Benchmarking';
 
 const { Content } = Layout;
 
@@ -38,6 +39,7 @@ function App() {
               <Route path="/users" element={<UserManagement />} />
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/add" element={<AddAssistant />} />
+              <Route path="/benchmarking" element={<Benchmarking />} />
               <Route path="/chat/:assistantId" element={<Chat />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

@@ -198,3 +198,42 @@ export async function fetchAssistant(keycloak, assistantId) {
   }
   return res.json();
 }
+
+// Benchmarking APIs
+export const getBenchmarkDatasets = async (keycloak) => {
+  if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
+  const res = await fetch(`${API_BASE_URL}/api/benchmarks/datasets`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const listBenchmarkRuns = async (keycloak) => {
+  if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
+  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const createBenchmarkRun = async (keycloak, payload) => {
+  if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
+  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${keycloak.token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};

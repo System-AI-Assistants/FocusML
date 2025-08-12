@@ -10,7 +10,8 @@ import {
   BellOutlined,
   UserOutlined,
   CodeSandboxOutlined,
-  MenuOutlined
+  MenuOutlined,
+  DotChartOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -45,6 +46,9 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         <Menu.Item key="/assistants" icon={<AppstoreOutlined />}>
           <Link to="/assistants">Assistants</Link>
         </Menu.Item>
+        <Menu.Item key="/benchmarking" icon={<DotChartOutlined />}>
+          <Link to="/benchmarking">Benchmarking</Link>
+        </Menu.Item>
         <Menu.Item key="/monitoring" icon={<BarChartOutlined />}>
           <Link to="/monitoring">Monitoring</Link>
         </Menu.Item>
@@ -64,7 +68,8 @@ const Sidebar = ({ collapsed, onCollapse }) => {
     const navItems = [
       { key: '/', icon: <HomeOutlined />, label: 'Home' },
       { key: '/experiments', icon: <ExperimentOutlined />, label: 'Experiments' },
-      { key: '/models', icon: <AppstoreOutlined />, label: 'Models' },
+      { key: '/assistants', icon: <AppstoreOutlined />, label: 'Assistants' },
+      { key: '/benchmarking', icon: <ExperimentOutlined />, label: 'Bench' },
       { key: '/monitoring', icon: <BarChartOutlined />, label: 'Monitor' },
       { key: '/alerts', icon: <BellOutlined />, label: 'Alerts' },
       { key: '/users', icon: <UserOutlined />, label: 'Users' }
