@@ -1,97 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+// src/pages/Chat.js
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
-import { Card, Input, Button, List, message, Spin, Typography } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
-import { sendChatMessage } from '../services/api';
-import './Chat.css';
+import { Flex, Breadcrumb, Typography, Avatar, Card, Divider, Tag, message as antdMessage } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
+import { Bubble, Sender, useXAgent, useXChat } from '@ant-design/x';
+import { sendChatMessage, fetchAssistant } from '../services/api';
 
 const { Title } = Typography;
-const { TextArea } = Input;
 
 function Chat() {
   const { assistantId } = useParams();
   const { keycloak, initialized } = useKeycloak();
-  const [messages, setMessages] = useState([]);
+
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [assistant, setAssistant] = useState(null);
+  const [assistantLoading, setAssistantLoading] = useState(true);
 
+  // Canonical transcript we send to backend
+  const transcriptRef = useRef([]);
+
+  // Load assistant meta (name, model, icon)
   useEffect(() => {
-    if (!initialized || !keycloak.authenticated) {
-      message.error('Please log in to access chat.');
+    let cancelled = false;
+    async function load() {
+      if (!initialized || !keycloak?.authenticated || !assistantId) return;
+      setAssistantLoading(true);
+      try {
+        const data = await fetchAssistant(keycloak, assistantId);
+        if (!cancelled) setAssistant(data);
+      } catch (err) {
+        if (!cancelled) {
+          setAssistant(null);
+          antdMessage.error(err?.message || 'Failed to load assistant');
+        }
+      } finally {
+        if (!cancelled) setAssistantLoading(false);
+      }
     }
-  }, [initialized, keycloak]);
+    load();
+    // reset transcript when switching assistants
+    transcriptRef.current = [];
+    return () => { cancelled = true; };
+  }, [assistantId, initialized, keycloak]);
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
-    if (!initialized || !keycloak.authenticated) {
-      message.error('Not authenticated.');
-      return;
-    }
+  // Dynamic roles: show model icon for AI if available
+  const roles = useMemo(() => ({
+    ai: {
+      placement: 'start',
+      avatar: assistant?.model_icon
+        ? {
+          src: assistant.model_icon, style: {
+            backgroundColor: '#fff',
+            border: '1px solid #d9d9d9',
+            padding: 8,               // gives breathing space
+            objectFit: 'contain',
+          }
+        }
+        : { icon: <UserOutlined />, style: { background: '#fde3cf' } },
+      typing: { step: 5, interval: 20 },
+      style: { maxWidth: 600 },
+    },
+    local: {
+      placement: 'end',
+      avatar: { icon: <UserOutlined />, style: { background: '#87d068' } },
+    },
+  }), [assistant?.model_icon]);
 
-    const userMessage = { role: 'user', content: input };
-    setMessages([...messages, userMessage]);
-    setInput('');
-    setLoading(true);
+  // Agent: UI -> backend request
+  const [agent] = useXAgent({
+    request: async ({ message }, { onSuccess, onError }) => {
+      try {
+        if (!initialized || !keycloak?.authenticated) {
+          throw new Error('Please log in to chat.');
+        }
+        if (!assistantId) {
+          throw new Error('Missing assistant id.');
+        }
 
-    try {
-      const response = await sendChatMessage(keycloak, assistantId, [
-        ...messages,
-        userMessage
-      ]);
-      const assistantMessage = response.choices[0].message;
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      message.error(`Failed to send message: ${err.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const history = [...transcriptRef.current, { role: 'user', content: message }];
+        const resp = await sendChatMessage(keycloak, assistantId, history);
+
+        let reply = '';
+        if (resp?.choices?.[0]) {
+          const ch = resp.choices[0];
+          if (ch.message?.content) reply = ch.message.content;
+          else if (ch.delta?.content) reply = ch.delta.content;
+          else if (ch.text) reply = ch.text;
+        } else if (resp?.message?.content) {
+          reply = resp.message.content;
+        }
+        if (!reply) reply = '…';
+
+        transcriptRef.current = [...history, { role: 'assistant', content: reply }];
+        onSuccess([reply]);
+      } catch (err) {
+        onError(err);
+        antdMessage.error(err?.message || 'Request failed');
+      }
+    },
+  });
+
+  // AntD X chat state
+  const { onRequest, messages } = useXChat({
+    agent,
+    requestPlaceholder: 'Thinking…',
+    requestFallback: 'Sorry, something went wrong. Please try again.',
+  });
 
   return (
-    <div className="chat-page-container">
-      <Title level={2}>Chat with Assistant {assistantId}</Title>
-      <Card className="chat-card">
-        <div className="chat-messages">
-          <List
-            dataSource={messages}
-            renderItem={(item) => (
-              <List.Item
-                className={item.role === 'user' ? 'user-message' : 'assistant-message'}
-              >
-                <div>
-                  <strong>{item.role === 'user' ? 'You' : 'Assistant'}:</strong> {item.content}
-                </div>
-              </List.Item>
-            )}
+    <>
+      <Breadcrumb
+        items={[
+          { title: <Link to="/assistants">Assistants</Link> },
+          { title: assistantLoading ? 'Loading…' : (assistant?.name || `#${assistantId}`) },
+        ]}
+        style={{ marginBottom: 12 }}
+      />
+
+
+      <Card className="modern-card" >
+        <Flex align="center" gap={12} style={{ padding: '0 16px 8px' }}>
+          <Avatar
+            src={assistant?.model_icon}
+            icon={!assistant?.model_icon ? <UserOutlined /> : undefined}
+            style={{
+              backgroundColor: '#fff',
+              border: '1px solid #d9d9d9',
+              padding: 8,            
+              objectFit: 'contain',
+            }}
+            shape="circle"
+            size={42}
           />
-          {loading && <Spin style={{ display: 'block', textAlign: 'center', margin: '16px 0' }} />}
-        </div>
-        <div className="chat-input">
-          <TextArea
-            rows={3}
+          <Title level={3} style={{ margin: 0 }}>
+            {assistantLoading ? 'Loading…' : (assistant?.name || `Assistant ${assistantId}`)}
+          </Title>
+          {assistant?.model && (
+            <Tag style={{ marginLeft: 8 }}>{assistant.model}</Tag>
+          )}
+        </Flex>
+
+        <Divider />
+        <Flex vertical gap="middle" style={{ height: '100%', padding: 16 }}>
+          <Bubble.List
+            roles={roles}
+            style={{ maxHeight: 480 }}
+            items={messages.map(({ id, message, status }) => ({
+              key: id,
+              loading: status === 'loading',
+              role: status === 'local' ? 'local' : 'ai',
+              content: message,
+            }))}
+          />
+          <Sender
+            loading={agent.isRequesting()}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={loading}
-            onPressEnter={(e) => {
-              if (e.ctrlKey) {
-                handleSendMessage();
+            onChange={setInput}
+            onSubmit={(text) => {
+              const trimmed = (text || '').trim();
+              if (!trimmed) return;
+              if (!initialized || !keycloak?.authenticated) {
+                antdMessage.error('Please log in to chat.');
+                return;
               }
+              onRequest(trimmed);
+              setInput('');
             }}
           />
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={handleSendMessage}
-            disabled={loading || !input.trim()}
-            style={{ marginTop: 8 }}
-          >
-            Send
-          </Button>
-        </div>
+        </Flex>
       </Card>
-    </div>
+    </>
   );
 }
 

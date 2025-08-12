@@ -89,6 +89,64 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
 
 
+@router.get("/{assistant_id}", dependencies=[Depends(get_current_user)])
+def get_assistant(assistant_id: int):
+    """Get a single assistant by ID and include the model family's icon if available."""
+    try:
+        with SessionLocal() as session:
+            assistant = session.query(Assistant).filter_by(id=assistant_id).first()
+            if not assistant:
+                raise HTTPException(status_code=404, detail="Assistant not found")
+
+            model_icon = None
+            try:
+                model = session.query(Model).filter_by(name=assistant.model).first()
+                if model:
+                    # Try relationship-style access: model.family.icon
+                    fam_attr = getattr(model, "family", None)
+                    if fam_attr is not None and not isinstance(fam_attr, str):
+                        model_icon = getattr(fam_attr, "icon", None)
+                    else:
+                        # Fall back to explicit lookup through ModelFamily by id or name
+                        try:
+                            from backend.db.models.model_family import ModelFamily  # local import to avoid hard dependency
+                            family_id = getattr(model, "family_id", None)
+                            if family_id is not None:
+                                mf = session.query(ModelFamily).filter_by(id=family_id).first()
+                                model_icon = mf.icon if mf else None
+                            else:
+                                family_name = fam_attr if isinstance(fam_attr, str) else getattr(model, "family_name", None)
+                                if family_name:
+                                    mf = session.query(ModelFamily).filter_by(name=family_name).first()
+                                    model_icon = mf.icon if mf else None
+                        except Exception:
+                            # If model family table or fields differ, just omit icon gracefully
+                            pass
+            except Exception:
+                # Any issue resolving the icon should not break the endpoint
+                pass
+
+            response = {
+                "id": assistant.id,
+                "name": assistant.name,
+                "owner": assistant.owner,
+                "database_url": assistant.database_url,
+                "version": assistant.version,
+                "stage": assistant.stage,
+                "model": assistant.model,
+                "is_local": assistant.is_local,
+                "status": assistant.status,
+                "mlflow_run_id": assistant.mlflow_run_id,
+                "create_time": assistant.create_time.isoformat() if assistant.create_time else None,
+                "last_modified": assistant.last_modified.isoformat() if assistant.last_modified else None,
+                "model_icon": model_icon,
+            }
+
+            return response
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch assistant: {str(e)}")
+
+
 @router.get("/", response_model=list[AssistantResponse], dependencies=[Depends(get_current_user)])
 def get_assistants():
     try:

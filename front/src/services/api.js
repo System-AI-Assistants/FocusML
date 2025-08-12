@@ -180,3 +180,21 @@ export const sendChatMessage = async (keycloak, assistantId, messages) => {
 
   return await response.json();
 };
+
+export async function fetchAssistant(keycloak, assistantId) {
+    if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
