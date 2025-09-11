@@ -41,7 +41,7 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
       KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME: https://${KEYCLOAK_DOMAIN}
+      KC_HOSTNAME: https://${KEYCLOAK_DOMAIN}/auth
       KC_HTTP_RELATIVE_PATH: /auth
     mem_limit: 500m
     command: start

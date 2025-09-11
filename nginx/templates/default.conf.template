@@ -1,6 +1,9 @@
 server {
     listen 80;
     server_name ${KEYCLOAK_DOMAIN};
+    
+    # Add debug headers
+    add_header X-Debug-Server $server_name always;
 
     # Let's Encrypt challenge
     location /.well-known/acme-challenge/ {
@@ -8,21 +11,30 @@ server {
     }
 
     # Test endpoint
-    location /test/ {
-        return 200 "nginx is working\n";
+    location /test {
+        return 200 "nginx is working - server_name: ${KEYCLOAK_DOMAIN}\n";
         add_header Content-Type text/plain;
+    }
+
+    # Debug Keycloak connectivity
+    location /auth-test {
+        proxy_pass http://keycloak:8080/;
+        proxy_set_header Host $host;
+        add_header X-Debug-Backend "keycloak:8080" always;
     }
 
     # Proxy to Keycloak
     location /auth/ {
-        proxy_pass http://keycloak:8080/;
+        # Remove trailing slash from proxy_pass to preserve the path
+        proxy_pass http://keycloak:8080/auth/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Port $server_port;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Prefix /auth;
+        
+        # Remove this header that might be causing issues
+        # proxy_set_header X-Forwarded-Prefix /auth;
 
         # Keycloak specific headers
         proxy_buffer_size 128k;
@@ -33,6 +45,9 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+        
+        # Debug
+        add_header X-Debug-Backend "keycloak:8080/auth/" always;
     }
 
     # Proxy to React app
@@ -54,7 +69,7 @@ server {
 
     # Catch-all for unmatched routes
     location / {
-        return 404 "Not Found\n";
+        return 404 "Not Found - Available: /test, /auth/, /app/\n";
         add_header Content-Type text/plain;
     }
 }
