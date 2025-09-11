@@ -59,12 +59,13 @@ services:
       context: ./front
       dockerfile: Dockerfile
     container_name: frontend
-    ports:
-      - "80:80"
+#    ports:
+#      - "80:80"
     depends_on:
       - keycloak
       - postgres
-      - nginx
+    networks:
+      - local
   nginx:
     image: nginx:${NGINX_VERSION:-latest}
     environment:
@@ -81,6 +82,7 @@ services:
     restart: always
     networks:
       - local
+
   certbot:
     image: certbot/certbot:${CERTBOT_VERSION:-latest}
     environment:
