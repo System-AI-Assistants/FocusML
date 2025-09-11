@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17.5
+    container_name: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql17_5/data
+    env_file:
+      - ./.env.db
+    ports:
+      - 5432:5432
+    networks:
+      - mlops_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.0
+    container_name: keycloak
+    command: ["start-dev"]
+    env_file:
+      - ./.env.keycloak
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - mlops_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file:
+      - ./backend/.env
+    environment:
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080/
+    ports:
+      - "8000:8000"
+    depends_on:
+      - keycloak
+    networks:
+      - mlops_network
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - mlops_network
+
+  #      TODO: change to postgres
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.1.4
+    container_name: mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/artifacts
+      - ./mlflow_data:/mlflow/db  # For SQLite DB persistence
+    networks:
+      - mlops_network
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/db/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+
+networks:
+  mlops_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,80 +1,96 @@
-version: '3.8'
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  local:
+    ipam:
+      config:
+        - subnet: ${SUBNET:-172.16.0.0/29}
 
 services:
   postgres:
-    image: postgres:17.5
+    image: postgres:${POSTGRES_VERSION:-latest}
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:-keycloak}
+    mem_limit: 300m
     container_name: postgres
     volumes:
-      - postgres_data:/var/lib/postgresql17_5/data
-    env_file:
-      - ./.env.db
-    ports:
-      - 5432:5432
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
     networks:
-      - mlops_network
-
+      - local
+  mail:
+    image: bytemark/smtp:latest
+    container_name: mail
+    mem_limit: 50m
+    restart: always
+    networks:
+      - local
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3.0
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-latest}
+    environment:
+      KC_DB: postgres
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:-keycloak}
+      KC_DB_URL_HOST: postgres
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME: https://${KEYCLOAK_DOMAIN}
+      KC_HTTP_RELATIVE_PATH: /auth
+    mem_limit: 500m
+    command: start
     container_name: keycloak
-    command: ["start-dev"]
-    env_file:
-      - ./.env.keycloak
-    ports:
-      - "8080:8080"
+    volumes:
+      - ./keycloak/themes:/opt/keycloak/themes
+    restart: always
+    networks:
+      - local
     depends_on:
       - postgres
-    networks:
-      - mlops_network
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: backend
-    env_file:
-      - ./backend/.env
-    environment:
-      - KEYCLOAK_SERVER_URL=http://keycloak:8080/
-    ports:
-      - "8000:8000"
-    depends_on:
-      - keycloak
-    networks:
-      - mlops_network
-
+      - mail
   frontend:
     build:
       context: ./front
       dockerfile: Dockerfile
     container_name: frontend
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
-      - backend
-    networks:
-      - mlops_network
-
-  #      TODO: change to postgres
-  mlflow:
-    image: ghcr.io/mlflow/mlflow:v3.1.4
-    container_name: mlflow
-    ports:
-      - "5000:5000"
+      - keycloak
+      - postgres
+      - nginx
+  nginx:
+    image: nginx:${NGINX_VERSION:-latest}
+    environment:
+      KEYCLOAK_DOMAIN: ${KEYCLOAK_DOMAIN}
+    mem_limit: 100m
+    container_name: nginx
     volumes:
-      - ./mlruns:/mlflow/artifacts
-      - ./mlflow_data:/mlflow/db  # For SQLite DB persistence
+      - ./nginx/templates:/etc/nginx/templates
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
     networks:
-      - mlops_network
-    command: >
-      mlflow server
-      --backend-store-uri sqlite:///mlflow/db/mlflow.db
-      --default-artifact-root /mlflow/artifacts
-      --host 0.0.0.0
-      --port 5000
-
-networks:
-  mlops_network:
-    driver: bridge
-
-volumes:
-  postgres_data:
+      - local
+  certbot:
+    image: certbot/certbot:${CERTBOT_VERSION:-latest}
+    environment:
+      CERTBOT_LETSENCRYPT_EMAIL: ${CERTBOT_LETSENCRYPT_EMAIL}
+      KEYCLOAK_DOMAIN: ${KEYCLOAK_DOMAIN}
+    mem_limit: 50m
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: certonly --non-interactive --webroot -w /var/www/certbot --email ${CERTBOT_LETSENCRYPT_EMAIL} -d ${KEYCLOAK_DOMAIN} --agree-tos
+    depends_on:
+      - nginx
