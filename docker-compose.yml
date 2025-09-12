@@ -6,7 +6,7 @@ networks:
   local:
     ipam:
       config:
-        - subnet: ${SUBNET:-172.16.0.0/29}
+        - subnet: ${SUBNET:-172.16.0.0/24}
 
 services:
   postgres:
@@ -29,6 +29,7 @@ services:
     restart: always
     networks:
       - local
+
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-latest}
     environment:
@@ -40,9 +41,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
-     # KC_HOSTNAME_STRICT: false
       KC_HOSTNAME: https://${KEYCLOAK_DOMAIN}/auth
-#      KC_HOSTNAME_URL: https://${KEYCLOAK_DOMAIN}/auth
       KC_HTTP_RELATIVE_PATH: /auth
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
@@ -58,13 +57,26 @@ services:
     depends_on:
       - postgres
       - mail
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file:
+      - ./backend/.env
+    environment:
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080/auth/
+    depends_on:
+      - keycloak
+    networks:
+      - local
+
   frontend:
     build:
       context: ./front
       dockerfile: Dockerfile
     container_name: frontend
-#    ports:
-#      - "80:80"
     depends_on:
       - keycloak
       - postgres
