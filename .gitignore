@@ -6,3 +6,4 @@ db
 .env.appdb
 .idea/
 .env.testdata.db
+certbot
