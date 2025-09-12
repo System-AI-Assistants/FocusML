@@ -1,5 +1,5 @@
 from keycloak import KeycloakAdmin, KeycloakOpenID
-from backend.core.config import settings
+from core.config import settings
 
 
 def get_keycloak_admin():

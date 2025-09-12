@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from backend.api.deps import get_current_user
-from backend.schemas.user import UserCreate
-from backend.services.keycloack_service import get_keycloak_admin
+from api.deps import get_current_user
+from schemas.user import UserCreate
+from services.keycloack_service import get_keycloak_admin
 
-router = APIRouter(prefix="/api/users", tags=["Users"])
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/", dependencies=[Depends(get_current_user)])

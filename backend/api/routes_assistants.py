@@ -5,17 +5,17 @@ from mlflow.types.chat import ChatMessage
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 
-from backend.api.deps import get_current_user
-from backend.db.models.assistant import Assistant
-from backend.db.models.model import Model
-from backend.db.session import SessionLocal
-from backend.api.ollama_model import OllamaModel
-from backend.schemas.assistant import AssistantCreate, AssistantResponse, AssistantEndpointResponse
+from api.deps import get_current_user
+from db.models.assistant import Assistant
+from db.models.model import Model
+from db.session import SessionLocal
+from api.ollama_model import OllamaModel
+from schemas.assistant import AssistantCreate, AssistantResponse, AssistantEndpointResponse
 import mlflow
 
-from backend.schemas.chat import ChatResponse, ChatRequest
+from schemas.chat import ChatResponse, ChatRequest
 
-router = APIRouter(prefix="/api/assistants", tags=["Assistants"])
+router = APIRouter(prefix="/assistants", tags=["Assistants"])
 
 
 @router.post("/", dependencies=[Depends(get_current_user)])
@@ -109,7 +109,7 @@ def get_assistant(assistant_id: int):
                     else:
                         # Fall back to explicit lookup through ModelFamily by id or name
                         try:
-                            from backend.db.models.model_family import ModelFamily  # local import to avoid hard dependency
+                            from db.models.model_family import ModelFamily  # local import to avoid hard dependency
                             family_id = getattr(model, "family_id", None)
                             if family_id is not None:
                                 mf = session.query(ModelFamily).filter_by(id=family_id).first()

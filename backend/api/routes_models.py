@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.exc import SQLAlchemyError
 
-from backend.api.deps import get_current_user
-from backend.db.models.model_family import ModelFamily
-from backend.db.session import SessionLocal
+from api.deps import get_current_user
+from db.models.model_family import ModelFamily
+from db.session import SessionLocal
 
-router = APIRouter(prefix="/api/models", tags=["Models"])
+router = APIRouter(prefix="/models", tags=["Models"])
 
 
 @router.get("/ollama", dependencies=[Depends(get_current_user)])

@@ -12,15 +12,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from datasets import load_dataset
 
-from backend.api.deps import get_current_user
-from backend.schemas.benchmark import (
+from api.deps import get_current_user
+from schemas.benchmark import (
     BenchmarkDataset,
     BenchmarkRunRequest,
     BenchmarkRunResponse,
     BenchmarkRun,
 )
 
-router = APIRouter(prefix="/api/benchmarks", tags=["Benchmarks"])
+router = APIRouter(prefix="/benchmarks", tags=["Benchmarks"])
 
 
 _RUNS: dict[str, BenchmarkRun] = {}

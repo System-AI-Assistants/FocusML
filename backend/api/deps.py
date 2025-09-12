@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
-from backend.services.keycloack_service import keycloak_openid
+from services.keycloack_service import keycloak_openid
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
