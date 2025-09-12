@@ -1,7 +1,6 @@
 {
   "name": "front",
   "version": "0.1.0",
-  "homepage": "/app",
   "private": true,
   "dependencies": {
     "@ant-design/x": "^1.6.0",

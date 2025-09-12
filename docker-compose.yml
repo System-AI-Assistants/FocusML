@@ -40,9 +40,13 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
-      KC_HOSTNAME_STRICT: false
+     # KC_HOSTNAME_STRICT: false
       KC_HOSTNAME: https://${KEYCLOAK_DOMAIN}/auth
+#      KC_HOSTNAME_URL: https://${KEYCLOAK_DOMAIN}/auth
       KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_PROXY_ADDRESS_FORWARDING: true
     mem_limit: 500m
     command: start
     container_name: keycloak

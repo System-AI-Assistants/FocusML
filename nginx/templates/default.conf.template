@@ -51,7 +51,7 @@ server {
     }
 
     # Proxy to React app
-    location /app/ {
+    location / {
         proxy_pass http://frontend:80/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -68,7 +68,7 @@ server {
     }
 
     # Catch-all for unmatched routes
-    location / {
+    location /x {
         return 404 "Not Found - Available: /test, /auth/, /app/\n";
         add_header Content-Type text/plain;
     }
