@@ -1,6 +1,12 @@
 volumes:
   postgres_data:
     driver: local
+  ollama_data:
+    driver: local
+  mlflow_data:
+    driver: local
+  mlflow_artifacts:
+    driver: local
 
 networks:
   local:
@@ -114,3 +120,38 @@ services:
     command: certonly --non-interactive --webroot -w /var/www/certbot --email ${CERTBOT_LETSENCRYPT_EMAIL} -d ${KEYCLOAK_DOMAIN} --agree-tos
     depends_on:
       - nginx
+
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION:-latest}
+    container_name: ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: always
+    networks:
+      - local
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.1.4
+    container_name: mlflow
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+      - mlflow_data:/mlflow/db
+    networks:
+      - local
+    restart: always
+    mem_limit: 200m
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/db/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000

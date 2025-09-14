@@ -48,7 +48,7 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
                         python_model="api/ollama_model.py",  # << script file, not an instance
                         model_config={
                             "model_name": assistant.model,  # e.g., "mistral:7b"
-                            "ollama_host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+                            "ollama_host": os.getenv("OLLAMA_HOST", "http://ollama:11434"),
                         },
                         # Keep dependencies minimal; pin mlflow to a recent version
                         pip_requirements=[
@@ -89,7 +89,7 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
 
 
-@router.get("/{assistant_id}", dependencies=[Depends(get_current_user)])
+@router.get("/{assistant_id}/", dependencies=[Depends(get_current_user)])
 def get_assistant(assistant_id: int):
     """Get a single assistant by ID and include the model family's icon if available."""
     try:
@@ -174,7 +174,7 @@ def get_assistants():
         raise HTTPException(status_code=500, detail=f"Failed to fetch assistants: {str(e)}")
 
 
-@router.get("/{assistant_id}/endpoints", response_model=list[AssistantEndpointResponse],
+@router.get("/{assistant_id}/endpoints/", response_model=list[AssistantEndpointResponse],
             dependencies=[Depends(get_current_user)])
 def get_assistant_endpoints(assistant_id: int):
     try:
@@ -205,7 +205,7 @@ def get_assistant_endpoints(assistant_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to fetch assistant endpoints: {str(e)}")
 
 
-@router.post("/{assistant_id}/run", response_model=AssistantResponse,
+@router.post("/{assistant_id}/run/", response_model=AssistantResponse,
              dependencies=[Depends(get_current_user)], tags=["Assistants"])
 def run_assistant(assistant_id: int):
     """Run an assistant by updating its status to 'running'."""
@@ -241,7 +241,7 @@ def run_assistant(assistant_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to run assistant: {str(e)}")
 
 
-@router.post("/{assistant_id}/stop", response_model=AssistantResponse,
+@router.post("/{assistant_id}/stop/", response_model=AssistantResponse,
              dependencies=[Depends(get_current_user)])
 def stop_assistant(assistant_id: int):
     """Stop an assistant by updating its status to 'stopped'."""
@@ -277,7 +277,7 @@ def stop_assistant(assistant_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to stop assistant: {str(e)}")
 
 
-@router.post("/{assistant_id}/chat", response_model=ChatResponse, dependencies=[Depends(get_current_user)])
+@router.post("/{assistant_id}/chat/", response_model=ChatResponse, dependencies=[Depends(get_current_user)])
 def chat_with_assistant(assistant_id: int, request: ChatRequest):
     """Chat with an assistant using its MLflow-logged model."""
     try:

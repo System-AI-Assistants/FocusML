@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     KEYCLOAK_ADMIN_PASSWORD: str
     KEYCLOAK_ADMIN_CLIENT_SECRET: str
     KEYCLOAK_FRONTEND_CLIENT_ID: str
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"
+    MLFLOW_TRACKING_URI: str = "http://mlflow:5000"
     DB_URL: str
 
     class Config:
