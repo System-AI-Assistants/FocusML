@@ -38,7 +38,7 @@ def create_user(user: UserCreate):
         raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
-@router.delete("{user_id}", dependencies=[Depends(get_current_user)])
+@router.delete("/{user_id}", dependencies=[Depends(get_current_user)])
 def delete_user(user_id: str):
     keycloak_admin = get_keycloak_admin()
     if not keycloak_admin:

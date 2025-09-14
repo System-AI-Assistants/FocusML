@@ -8,7 +8,7 @@ from db.session import SessionLocal
 router = APIRouter(prefix="/models", tags=["Models"])
 
 
-@router.get("/ollama", dependencies=[Depends(get_current_user)])
+@router.get("/ollama/", dependencies=[Depends(get_current_user)])
 def get_models():
     try:
         with SessionLocal() as session:

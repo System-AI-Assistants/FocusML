@@ -22,6 +22,8 @@ services:
     restart: always
     networks:
       - local
+    ports:
+      - "5432:5432"
   mail:
     image: bytemark/smtp:latest
     container_name: mail

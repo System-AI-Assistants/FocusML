@@ -20,7 +20,7 @@ function UserManagement() {
     if (initialized && keycloak.authenticated) {
       try {
         setLoading(true);
-        const response = await axios.get(`${API_URL}/users`, {
+        const response = await axios.get(`${API_URL}/users/`, {
           headers: {
             Authorization: `Bearer ${keycloak.token}`,
           },
@@ -50,7 +50,7 @@ function UserManagement() {
 
   const handleAddUser = async (values) => {
     try {
-      await axios.post(`${API_URL}/users`, values, {
+      await axios.post(`${API_URL}/users/`, values, {
         headers: {
           Authorization: `Bearer ${keycloak.token}`,
         },

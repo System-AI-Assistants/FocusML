@@ -26,7 +26,7 @@ app = FastAPI(
     title="FocusML Platform Backend",
     description="API for managing users and other platform resources.",
     version="1.0.0",
-#    root_url="/api",
+    root_path="/api",
 )
 
 app.add_middleware(

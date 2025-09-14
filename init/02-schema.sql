@@ -1,7 +1,3 @@
-CREATE DATABASE react_db;
-
-\connect react_db;
-
 CREATE TABLE assistants (
     id integer NOT NULL,
     name character varying(255) NOT NULL,
@@ -18,11 +14,6 @@ CREATE TABLE assistants (
 );
 
 
-ALTER TABLE assistants OWNER focusml;
-
---
--- Name: assistants_id_seq; Type: SEQUENCE; Schema: public; Owner: react
---
 
 CREATE SEQUENCE assistants_id_seq
     AS integer
@@ -33,19 +24,6 @@ CREATE SEQUENCE assistants_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE assistants_id_seq OWNER focusml;
-
---
--- Name: assistants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: react
---
-
-ALTER SEQUENCE assistants_id_seq OWNED BY assistants.id;
-
-
---
--- Name: model_families; Type: TABLE; Schema: public; Owner: react
---
-
 CREATE TABLE model_families (
     id integer NOT NULL,
     name character varying(255) NOT NULL,
@@ -55,13 +33,6 @@ CREATE TABLE model_families (
     installed boolean
 );
 
-
-ALTER TABLE model_families OWNER focusml;
-
---
--- Name: model_families_id_seq; Type: SEQUENCE; Schema: public; Owner: react
---
-
 CREATE SEQUENCE model_families_id_seq
     AS integer
     START WITH 1
@@ -70,19 +41,6 @@ CREATE SEQUENCE model_families_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER SEQUENCE model_families_id_seq OWNER focusml;
-
---
--- Name: model_families_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: react
---
-
-ALTER SEQUENCE model_families_id_seq OWNED BY model_families.id;
-
-
---
--- Name: models; Type: TABLE; Schema: public; Owner: react
---
 
 CREATE TABLE models (
     id integer NOT NULL,
@@ -94,12 +52,6 @@ CREATE TABLE models (
 );
 
 
-ALTER TABLE models OWNER focusml;
-
---
--- Name: models_id_seq; Type: SEQUENCE; Schema: public; Owner: react
---
-
 CREATE SEQUENCE models_id_seq
     AS integer
     START WITH 1
@@ -108,19 +60,6 @@ CREATE SEQUENCE models_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER SEQUENCE models_id_seq OWNER focusml;
-
---
--- Name: models_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: react
---
-
-ALTER SEQUENCE models_id_seq OWNED BY models.id;
-
-
---
--- Name: assistants id; Type: DEFAULT; Schema: public; Owner: react
---
 
 ALTER TABLE ONLY assistants ALTER COLUMN id SET DEFAULT nextval('assistants_id_seq'::regclass);
 
@@ -139,17 +78,6 @@ ALTER TABLE ONLY model_families ALTER COLUMN id SET DEFAULT nextval('model_famil
 ALTER TABLE ONLY models ALTER COLUMN id SET DEFAULT nextval('models_id_seq'::regclass);
 
 
---
--- Data for Name: assistants; Type: TABLE DATA; Schema: public; Owner: react
---
-
-COPY assistants (id, name, owner, database_url, version, stage, model, is_local, create_time, last_modified, status, mlflow_run_id) FROM stdin;
-14	test6	debug-user	postgresql://test_data:VcnBcz3APvVfH5gDYxWSWjJdLvzRLtKcvjJZErJGs3FYdd@localhost:5432/test_data	6	staging	mistral:7b	t	2025-07-28 12:41:03.932358	2025-07-28 12:41:03.932358	running	123
-36	Adam	68a3fd26-0546-4fa1-be0f-388aaf80f0de	postgresql://test_data:VcnBcz3APvVfH5gDYxWSWjJdLvzRLtKcvjJZErJGs3FYdd@localhost:5432/test_data	1	staging	mistral:7b	t	2025-08-11 23:41:53.603878	2025-08-11 23:41:53.609917	running	5520bd7c438744df844b121d56defa2f
-37	TestMistral	68a3fd26-0546-4fa1-be0f-388aaf80f0de	postgresql://test_data:VcnBcz3APvVfH5gDYxWSWjJdLvzRLtKcvjJZErJGs3FYdd@localhost:5432/test_data	3	staging	mistral:7b	t	2025-08-12 01:51:46.168433	2025-08-12 01:51:46.199373	running	7ca61ed3ee114decb39c9483dfa1c5f5
-43	TinyLlama	68a3fd26-0546-4fa1-be0f-388aaf80f0de	postgresql://test_data:VcnBcz3APvVfH5gDYxWSWjJdLvzRLtKcvjJZErJGs3FYdd@localhost:5432/test_data	1	staging	tinyllama:latest	t	2025-08-12 02:05:35.598953	2025-08-12 02:05:38.682336	running	258389261457479db4b154693b1a37c9
-44	DemoMistral	68a3fd26-0546-4fa1-be0f-388aaf80f0de	postgresql://test_data:VcnBcz3APvVfH5gDYxWSWjJdLvzRLtKcvjJZErJGs3FYdd@localhost:5432/test_data	1	staging	mistral:7b	t	2025-08-12 14:13:57.203531	2025-08-12 14:13:57.240503	running	5d6e97a721a94320885fcebb00e2ecb4
-\.
 
 
 --
