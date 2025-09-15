@@ -79,7 +79,8 @@ services:
       - keycloak
     networks:
       - local
-
+    volumes:
+      - .:backend
   frontend:
     build:
       context: ./front
