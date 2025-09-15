@@ -69,6 +69,27 @@ export const createAssistant = async (keycloak, payload) => {
   return await response.json();
 };
 
+export const getAssistantStatus = async (keycloak, assistantId) => {
+    if (!keycloak || !keycloak.token) {
+        throw new Error('Keycloak not initialized or no token available');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/status/`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${keycloak.token}`,
+            'Content-Type': 'application/json',
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to get assistant status');
+    }
+
+    return await response.json();
+};
+
 export const getAssistants = async (keycloak) => {
   if (!keycloak || !keycloak.token) {
     throw new Error('Keycloak not initialized or no token available');

@@ -14,12 +14,17 @@ from schemas.assistant import AssistantCreate, AssistantResponse, AssistantEndpo
 import mlflow
 
 from schemas.chat import ChatResponse, ChatRequest
+from fastapi import BackgroundTasks
+
 
 router = APIRouter(prefix="/assistants", tags=["Assistants"])
 
 
 @router.post("/", dependencies=[Depends(get_current_user)])
-def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_current_user)):
+async def create_assistant(assistant: AssistantCreate, 
+    background_tasks: BackgroundTasks,
+    token_info: dict = Depends(get_current_user),
+        ):
     try:
         with SessionLocal() as session:
             # Validate model exists
@@ -34,41 +39,21 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
                 version=assistant.version,
                 stage=assistant.stage,
                 model=assistant.model,
-                status='running',
+                status='initializing',
                 is_local=assistant.is_local
             )
             session.add(db_assistant)
             session.commit()
             session.refresh(db_assistant)
 
-            try:
-                with mlflow.start_run(run_name=f"assistant-{db_assistant.id}") as run:
-                    model_info = mlflow.pyfunc.log_model(
-                        name="model",  # 'artifact_path' is deprecated; use 'name'
-                        python_model="api/ollama_model.py",  # << script file, not an instance
-                        model_config={
-                            "model_name": assistant.model,  # e.g., "mistral:7b"
-                            "ollama_host": os.getenv("OLLAMA_HOST", "http://ollama:11434"),
-                        },
-                        # Keep dependencies minimal; pin mlflow to a recent version
-                        pip_requirements=[
-                            "mlflow>=2.12.2",  # Models-from-Code availability
-                            "ollama>=0.3.0",
-                        ],
-                        input_example={
-                            "messages": [{"role": "user", "content": "ping"}]
-                        },
-                    )
-                    mlflow.log_param("model_name", assistant.model)
-                    db_assistant.mlflow_run_id = run.info.run_id
-                    session.commit()
 
-            except Exception as e:
+            background_tasks.add_task(
+                initialize_mlflow_model, 
+                db_assistant.id, 
+                assistant.model
+            )
 
-                session.delete(db_assistant)
-                session.commit()
-                raise HTTPException(status_code=500, detail=f"Failed to log model to MLflow: {str(e)}")
-
+            
             response = {
                 "id": db_assistant.id,
                 "name": db_assistant.name,
@@ -79,7 +64,7 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
                 "model": db_assistant.model,
                 "is_local": db_assistant.is_local,
                 "status": db_assistant.status,
-                "mlflow_run_id": db_assistant.mlflow_run_id,
+                "mlflow_run_id": None, # we set later
                 "create_time": db_assistant.create_time.isoformat(),
                 "last_modified": db_assistant.last_modified.isoformat()
             }
@@ -88,6 +73,63 @@ def create_assistant(assistant: AssistantCreate, token_info: dict = Depends(get_
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
 
+
+def initialize_mlflow_model(assistant_id: int, model_name: str):
+    """Background task to initialize MLflow model"""
+    try:
+        with SessionLocal() as session:
+            assistant = session.query(Assistant).filter_by(id=assistant_id).first()
+            if not assistant:
+                return
+
+            with mlflow.start_run(run_name=f"assistant-{assistant.id}") as run:
+                model_info = mlflow.pyfunc.log_model(
+                    name="model",  # 'artifact_path' is deprecated; use 'name'
+                    python_model="api/ollama_model.py",  # << script file, not an instance
+                    model_config={
+                        "model_name": assistant.model,  # e.g., "mistral:7b"
+                        "ollama_host": os.getenv("OLLAMA_HOST", "http://ollama:11434"),
+                    },
+                    # Keep dependencies minimal; pin mlflow to a recent version
+                    pip_requirements=[
+                        "mlflow>=2.12.2",  # Models-from-Code availability
+                        "ollama>=0.3.0",
+                    ],
+                    input_example={
+                        "messages": [{"role": "user", "content": "ping"}]
+                    },
+                )
+                mlflow.log_param("model_name", assistant.model)
+                assistant.mlflow_run_id = run.info.run_id
+                assistant.status = 'running'
+                session.commit()
+
+    except Exception as e:
+        with SessionLocal() as session:
+            assistant = session.query(Assistant).filter_by(id=assistant_id).first()
+            if assistant:
+                assistant.status = 'failed'
+                session.commit()
+        print(f"Failed to initialize MLflow model for assistant {assistant_id}: {e}")
+
+@router.get("/{assistant_id}/status/", dependencies=[Depends(get_current_user)])
+def get_assistant_status(assistant_id: int):
+    """Check the initialization status of an assistant"""
+    try:
+        with SessionLocal() as session:
+            assistant = session.query(Assistant).filter_by(id=assistant_id).first()
+            if not assistant:
+                raise HTTPException(status_code=404, detail="Assistant not found")
+            
+            return {
+                "id": assistant.id,
+                "name": assistant.name,
+                "status": assistant.status,
+                "mlflow_run_id": assistant.mlflow_run_id,
+                "is_ready": assistant.status == 'running' and assistant.mlflow_run_id is not None
+            }
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
 @router.get("/{assistant_id}/", dependencies=[Depends(get_current_user)])
 def get_assistant(assistant_id: int):
@@ -286,6 +328,14 @@ def chat_with_assistant(assistant_id: int, request: ChatRequest):
             assistant = session.query(Assistant).filter_by(id=assistant_id).first()
             if not assistant:
                 raise HTTPException(status_code=404, detail="Assistant not found")
+
+            if assistant.status == 'initializing':
+                raise HTTPException(status_code=202, detail="Assistant is still initializing. Please try again later.")
+            
+            if assistant.status == 'failed':
+                raise HTTPException(status_code=500, detail="Assistant initialization failed")
+                
+
             if not assistant.mlflow_run_id:
                 raise HTTPException(status_code=400, detail="Assistant has no associated MLflow model")
 
