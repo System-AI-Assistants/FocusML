@@ -281,6 +281,7 @@ def stop_assistant(assistant_id: int):
 def chat_with_assistant(assistant_id: int, request: ChatRequest):
     """Chat with an assistant using its MLflow-logged model."""
     try:
+        print({assistant_id},"- chat")
         with SessionLocal() as session:
             assistant = session.query(Assistant).filter_by(id=assistant_id).first()
             if not assistant:

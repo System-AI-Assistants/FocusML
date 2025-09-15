@@ -77,10 +77,10 @@ services:
       - KEYCLOAK_SERVER_URL=http://keycloak:8080/auth/
     depends_on:
       - keycloak
+      - postgres
     networks:
       - local
-    volumes:
-      - .:backend
+
   frontend:
     build:
       context: ./front
@@ -144,8 +144,8 @@ services:
     image: ghcr.io/mlflow/mlflow:v3.1.4
     container_name: mlflow
     volumes:
-      - mlflow_artifacts:/mlflow/artifacts
-      - mlflow_data:/mlflow/db
+      - ./mlruns:/mlflow/artifacts
+      - ./mlflow_data:/mlflow/db
     networks:
       - local
     restart: always

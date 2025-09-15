@@ -7,3 +7,4 @@ db
 .idea/
 .env.testdata.db
 certbot
+certbot/
