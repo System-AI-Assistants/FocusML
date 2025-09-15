@@ -261,7 +261,7 @@ export const getBenchmarkRun = async (keycloak, runId) => {
 export const getBenchmarkRunLogs = async (keycloak, runId, offset = 0, limit = 100) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
   const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/${runId}/logs?${params.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/${runId}/logs/?${params.toString()}`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${keycloak.token}`,

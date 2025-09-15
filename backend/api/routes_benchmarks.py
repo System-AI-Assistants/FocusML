@@ -275,7 +275,7 @@ def _spawn_background_run(run_id: str, model: str, dataset: str):
     t.start()
 
 
-@router.get("/datasets", response_model=list[BenchmarkDataset], dependencies=[Depends(get_current_user)])
+@router.get("/datasets/", response_model=list[BenchmarkDataset], dependencies=[Depends(get_current_user)])
 def list_datasets():
     """List available benchmark datasets. For now, only MMLU-Pro."""
     return [
@@ -288,7 +288,7 @@ def list_datasets():
     ]
 
 
-@router.post("/runs", response_model=BenchmarkRunResponse, dependencies=[Depends(get_current_user)])
+@router.post("/runs/", response_model=BenchmarkRunResponse, dependencies=[Depends(get_current_user)])
 def create_run(req: BenchmarkRunRequest):
     """Queue a new benchmark run. Stubbed: immediately returns queued status."""
     run_id = str(uuid.uuid4())
@@ -306,12 +306,12 @@ def create_run(req: BenchmarkRunRequest):
     return BenchmarkRunResponse(id=run.id, model=run.model, dataset=run.dataset, status=run.status, score=run.score)
 
 
-@router.get("/runs", response_model=list[BenchmarkRun], dependencies=[Depends(get_current_user)])
+@router.get("/runs/", response_model=list[BenchmarkRun], dependencies=[Depends(get_current_user)])
 def list_runs():
     return list(_RUNS.values())
 
 
-@router.get("/runs/{run_id}", response_model=BenchmarkRun, dependencies=[Depends(get_current_user)])
+@router.get("/runs/{run_id}/", response_model=BenchmarkRun, dependencies=[Depends(get_current_user)])
 def get_run(run_id: str):
     run = _RUNS.get(run_id)
     if not run:
@@ -319,7 +319,7 @@ def get_run(run_id: str):
     return run
 
 
-@router.post("/runs/{run_id}/cancel", dependencies=[Depends(get_current_user)])
+@router.post("/runs/{run_id}/cancel/", dependencies=[Depends(get_current_user)])
 def cancel_run(run_id: str):
     run = _RUNS.get(run_id)
     if not run:
@@ -330,7 +330,7 @@ def cancel_run(run_id: str):
     return {"status": "cancelling"}
 
 
-@router.get("/runs/{run_id}/logs", dependencies=[Depends(get_current_user)])
+@router.get("/runs/{run_id}/logs/", dependencies=[Depends(get_current_user)])
 def get_run_logs(run_id: str, offset: int = 0, limit: int = 100):
     """Return incremental logs for a run. Use offset to page forward."""
     if run_id not in _RUN_LOGS:
