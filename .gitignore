@@ -14,3 +14,4 @@ backend/db/__pycache__
 backend/db/models/__pycache__
 backend/schemas/__pycache__
 backend/services/__pycache__
+node_modules
