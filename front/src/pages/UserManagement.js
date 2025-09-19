@@ -7,7 +7,9 @@ import axios from 'axios';
 
 const { Title } = Typography;
 
-const API_URL = 'https://aiassistant.smartlilac.com/api';
+//const API_URL = 'https://aiassistant.smartlilac.com/api';
+const API_URL = 'http://localhost:8080';
+
 
 function UserManagement() {
   const { keycloak, initialized } = useKeycloak();

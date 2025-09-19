@@ -27,10 +27,12 @@ const Sidebar = ({ collapsed, onCollapse }) => {
   // Menu content
   const menuContent = (
     <div className='sidebar-section'>
-      <div className="sidebar-logo">
-  <img src="/logo.svg" alt="MLfocus Logo" style={{ width: '36px', height: '36px' }} />
-        <Title level={3} style={{ margin: 0, marginLeft: '10px', color: '#1a1a1a', fontFamily: 'TikTok Sans', fontWeight:700  }}>FocusML</Title>
-      </div>
+      <Link to="/">
+        <div className="sidebar-logo">
+          <img src="/logo.svg" alt="MLfocus Logo" style={{ width: '36px', height: '36px' }} />
+          <Title level={3} style={{ margin: 0, marginLeft: '10px', color: '#1a1a1a', fontFamily: 'TikTok Sans', fontWeight:700  }}>FocusML</Title>
+        </div>
+      </Link>
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}

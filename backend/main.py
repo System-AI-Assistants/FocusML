@@ -11,15 +11,12 @@ from api import routes_users, routes_assistants, routes_models, routes_benchmark
 
 load_dotenv()
 
-
 TMP_DIR = os.getenv("MLFLOW_TMP_DIR", "./.mlflow_tmp")
 pathlib.Path(TMP_DIR).mkdir(parents=True, exist_ok=True)
 os.environ["MLFLOW_TMP_DIR"] = TMP_DIR
 
-
 # MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 # mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
 
 
 app = FastAPI(
@@ -31,7 +28,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://aiassistant.smartlilac.com"],
+    allow_origins=["https://aiassistant.smartlilac.com",
+                   "http://localhost:3000",
+                   "http://localhost:8000",
+                   "http://127.0.0.1:3000"
+                   "http://127.0.0.1:8000"
+                   ],
+
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],

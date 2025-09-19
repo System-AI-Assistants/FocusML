@@ -1,5 +1,4 @@
 .venv
-db
 .DS_Store
 .env.db
 .env.keycloak
@@ -8,3 +7,10 @@ db
 .env.testdata.db
 certbot
 certbot/
+mlflow_data
+backend/api/__pycache__
+backend/core/__pycache__
+backend/db/__pycache__
+backend/db/models/__pycache__
+backend/schemas/__pycache__
+backend/services/__pycache__

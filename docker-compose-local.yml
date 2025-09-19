@@ -13,14 +13,14 @@ networks:
 services:
   postgres:
     image: postgres:${POSTGRES_VERSION:-latest}
+    env_file:
+      - ./.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:-keycloak}
     mem_limit: 300m
-    container_name: postgres
-    env_file:
-      - ./.local.env
+    container_name: postgres_loc
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -31,19 +31,21 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-latest}
+    env_file:
+      - ./.env
     environment:
       KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:-keycloak}
-      KC_DB_URL_HOST: postgres
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HOSTNAME: localhost
     ports:
       - "${KEYCLOAK_PORT}:${KEYCLOAK_PORT}"
     mem_limit: 500m
-    command: start
-    container_name: keycloak
+    command: start-dev
+    container_name: keycloak_loc
     volumes:
       - ./keycloak/themes:/opt/keycloak/themes
     restart: always
@@ -56,9 +58,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: backend
+    container_name: backend_loc
     env_file:
-      - ./backend/.local.env
+      - ./.env
     environment:
       - KEYCLOAK_SERVER_URL="http://keycloak:${KEYCLOAK_PORT}/"
     ports:
@@ -73,7 +75,13 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
-    container_name: frontend
+      args:
+      - APP_ENV=${APP_ENV}
+      - KEYCLOAK_DOMAIN=${KEYCLOAK_DOMAIN}
+      - KEYCLOAK_DOMAIN_LOCAL=${KEYCLOAK_DOMAIN_LOCAL}
+    container_name: frontend_loc
+    env_file:
+      - ./.env
     depends_on:
       - keycloak
       - postgres
@@ -84,14 +92,16 @@ services:
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.1.4
-    container_name: mlflow
+    container_name: mlflow_loc
+    env_file:
+      - ./.env
     ports:
       - "5000:5000"
     volumes:
       - ./mlruns:/mlflow/artifacts
       - ./mlflow_data:/mlflow/db
     networks:
-      - local
+      - mlops_network
     restart: always
     mem_limit: 200m
     command: >

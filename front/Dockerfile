@@ -16,6 +16,16 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Accept build arguments
+ARG APP_ENV
+ARG KEYCLOAK_DOMAIN
+ARG KEYCLOAK_DOMAIN_LOCAL
+
+# Set environment variables for build
+ENV REACT_APP_ENV=$APP_ENV
+ENV REACT_APP_KEYCLOAK_DOMAIN=$KEYCLOAK_DOMAIN
+ENV REACT_APP_KEYCLOAK_DOMAIN_LOCAL=$KEYCLOAK_DOMAIN_LOCAL
+
 # Build the application
 RUN npm run build
 # If using yarn: RUN yarn build

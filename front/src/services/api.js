@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://aiassistant.smartlilac.com';
+//const API_BASE_URL = 'https://aiassistant.smartlilac.com/api';
+const API_BASE_URL = 'http://localhost:8000';
 
 export const getModelFams = async (keycloak) => {
   if (!keycloak) {
@@ -10,7 +11,7 @@ export const getModelFams = async (keycloak) => {
       throw new Error('User is not authenticated');
     }
     console.log('Fetching models with token:', keycloak.token.substring(0, 20) + '...'); // Log partial token
-    const response = await fetch(`${API_BASE_URL}/api/models/ollama/`, {
+    const response = await fetch(`${API_BASE_URL}/models/ollama/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +53,7 @@ export const createAssistant = async (keycloak, payload) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants/`, {
+  const response = await fetch(`${API_BASE_URL}/assistants/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -74,7 +75,7 @@ export const getAssistantStatus = async (keycloak, assistantId) => {
         throw new Error('Keycloak not initialized or no token available');
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/status/`, {
+    const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/status/`, {
         method: 'GET',
         headers: {
             Authorization: `Bearer ${keycloak.token}`,
@@ -95,7 +96,7 @@ export const getAssistants = async (keycloak) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants/`, {
+  const response = await fetch(`${API_BASE_URL}/assistants/`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -116,7 +117,7 @@ export const getAssistantEndpoints = async (keycloak, assistantId) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/endpoints/`, {
+  const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/endpoints/`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -137,7 +138,7 @@ export const runAssistant = async (keycloak, assistantId) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/run/`, {
+  const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/run/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -158,7 +159,7 @@ export const stopAssistant = async (keycloak, assistantId) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/stop/`, {
+  const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/stop/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -180,7 +181,7 @@ export const sendChatMessage = async (keycloak, assistantId, messages) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/chat/`, {
+  const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/chat/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -207,7 +208,7 @@ export async function fetchAssistant(keycloak, assistantId) {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const res = await fetch(`${API_BASE_URL}/api/assistants/${assistantId}/`, {
+  const res = await fetch(`${API_BASE_URL}/assistants/${assistantId}/`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${keycloak.token}`,
@@ -223,7 +224,7 @@ export async function fetchAssistant(keycloak, assistantId) {
 // Benchmarking APIs
 export const getBenchmarkDatasets = async (keycloak) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/datasets/`, {
+  const res = await fetch(`${API_BASE_URL}/benchmarks/datasets/`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${keycloak.token}`,
@@ -235,7 +236,7 @@ export const getBenchmarkDatasets = async (keycloak) => {
 
 export const cancelBenchmarkRun = async (keycloak, runId) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/${runId}/cancel/`, {
+  const res = await fetch(`${API_BASE_URL}/benchmarks/runs/${runId}/cancel/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -248,7 +249,7 @@ export const cancelBenchmarkRun = async (keycloak, runId) => {
 
 export const getBenchmarkRun = async (keycloak, runId) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/${runId}/`, {
+  const res = await fetch(`${API_BASE_URL}/benchmarks/runs/${runId}/`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${keycloak.token}`,
@@ -261,7 +262,7 @@ export const getBenchmarkRun = async (keycloak, runId) => {
 export const getBenchmarkRunLogs = async (keycloak, runId, offset = 0, limit = 100) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
   const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/${runId}/logs/?${params.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/benchmarks/runs/${runId}/logs/?${params.toString()}`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${keycloak.token}`,
@@ -273,7 +274,7 @@ export const getBenchmarkRunLogs = async (keycloak, runId, offset = 0, limit = 1
 
 export const listBenchmarkRuns = async (keycloak) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/`, {
+  const res = await fetch(`${API_BASE_URL}/benchmarks/runs/`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${keycloak.token}`,
@@ -285,7 +286,7 @@ export const listBenchmarkRuns = async (keycloak) => {
 
 export const createBenchmarkRun = async (keycloak, payload) => {
   if (!keycloak || !keycloak.token) throw new Error('Keycloak not initialized or no token available');
-  const res = await fetch(`${API_BASE_URL}/api/benchmarks/runs/`, {
+  const res = await fetch(`${API_BASE_URL}/benchmarks/runs/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
