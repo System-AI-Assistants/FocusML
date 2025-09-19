@@ -16,6 +16,9 @@ import {
 import OnlineIndicator from "../components/OnlineIndicator";
 import PeriodSelector from "../components/PeriodSelector";
 import RequestsChart from "../components/RequestsChart";
+import StackedAreaChart from "../components/StackedAreaChart";
+import AssistantsPieChart from "../components/AssistantsPieChart";
+import ModelLatencyChart from "../components/ModelLatency";
 
 const {Title, Text} = Typography;
 
@@ -121,9 +124,7 @@ function Dashboard() {
 
         <Col xs={24} lg={12}>
           <Card className="modern-card" title={<span className="card-title">Requests Over Time</span>}>
-
-              <RequestsChart type="area" />
-
+            <StackedAreaChart height={300} />
           </Card>
         </Col>
 
@@ -143,6 +144,24 @@ function Dashboard() {
               />
 
           </Card>
+        </Col>
+
+      </Row>
+
+      <Row gutter={[24, 24]} style={{marginBottom: '24px'}}>
+
+        <Col xs={24} lg={10}>
+          <Card className="modern-card" title={<span className="card-title">Assistant Usage Distribution</span>}>
+            <AssistantsPieChart height={350} />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={14}>
+            <Card className="modern-card" title={<span className="card-title">Model Latency Metrics</span>}>
+              <ModelLatencyChart height={350} />
+            </Card>
+
+
         </Col>
 
       </Row>
