@@ -297,3 +297,55 @@ export const createBenchmarkRun = async (keycloak, payload) => {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 };
+
+
+export const getStatistics = async (keycloak, period = '7days') => {
+  if (!keycloak) {
+    console.error('getStatistics: Keycloak instance is undefined');
+    return null;
+  }
+
+  try {
+    if (!keycloak.authenticated) {
+      throw new Error('User is not authenticated');
+    }
+
+    console.log('Fetching statistics with token:', keycloak.token.substring(0, 20) + '...');
+
+    const response = await fetch(`${API_BASE_URL}/statistics/?period=${period}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${keycloak.token}`,
+      },
+    });
+
+    console.log('Statistics response status:', response.status, 'Status text:', response.statusText);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}, StatusText: ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    console.log('Raw statistics response:', text);
+
+    let data;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return null;
+    }
+
+    console.log('Parsed statistics data:', data);
+    return data;
+
+  } catch (error) {
+    console.error('Error in getStatistics:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    });
+    return null;
+  }
+};
