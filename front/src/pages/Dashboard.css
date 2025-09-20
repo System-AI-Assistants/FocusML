@@ -39,3 +39,13 @@
 .status-info { color: var(--color-accent); }
 .status-warning { color: #faad14; }
 
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.01); /* translucent background */
+  backdrop-filter: blur(10px); /* applies blur to everything behind it */
+
+  margin: -16px -24px 24px -24px; /* Extend to container edges */
+  padding: 12px 24px;
+}

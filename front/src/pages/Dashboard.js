@@ -60,14 +60,16 @@ function Dashboard() {
 
   return (
     <div className="page-container">
+      <div className="sticky-header">
       <div className="page-title-main">Dashboard</div>
 
-      <div style={{marginBottom: '12px'}}>
+      <div >
         <PeriodSelector
           onPeriodChange={(data) => console.log(data)}
           defaultPeriod="last7days"
           showQuickStats={true}
         />
+      </div>
       </div>
 
       {/* Key Statistics */}

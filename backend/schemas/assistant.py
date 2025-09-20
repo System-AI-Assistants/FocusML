@@ -16,11 +16,11 @@ class AssistantResponse(BaseModel):
     id: int
     name: str
     owner: str
-    database_url: str
-    version: str
-    stage: str
+    database_url: str = None
+    version: str = None
+    stage: str = None
     model: str
-    is_local: bool
+    is_local: bool = None
     status: str
     mlflow_run_id: Optional[str] = None
     create_time: str

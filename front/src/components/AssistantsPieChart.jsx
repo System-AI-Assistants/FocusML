@@ -15,7 +15,7 @@ const AssistantsPieChart = ({
   height = 300,
   stretch = false,
   legendPosition = 'right',
-  legendWidth = 260
+  legendWidth = 200
 }) => {
   const defaultData = [
     { name: 'Coding Assistant', value: 35, requests: 2450 },
@@ -196,7 +196,7 @@ const AssistantsPieChart = ({
       {/* Chart area: flex: 1 so it stays consistent height when legend is on right */}
       <div style={{ flex: 1, minWidth: 0, boxSizing: 'border-box' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 12, right: 6, bottom: 12, left: 6 }}>
+          <PieChart margin={{ top: 12, right: 3, bottom: 12, left: 3 }}>
             <Pie
               data={chartData}
               cx="50%"

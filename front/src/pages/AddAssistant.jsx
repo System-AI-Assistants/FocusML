@@ -214,7 +214,7 @@ const AddModel = () => {
 
         // Reset form but don't navigate yet
 
-      form.resetFields();
+//      form.resetFields();
       setSelectedModel(null);
       setSelectedExecutionType(null);
       setFileList([]);

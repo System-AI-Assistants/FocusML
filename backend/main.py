@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import routes_users, routes_assistants, routes_models, routes_benchmarks
+from core.config import settings
 
 load_dotenv()
 
@@ -15,8 +16,10 @@ TMP_DIR = os.getenv("MLFLOW_TMP_DIR", "./.mlflow_tmp")
 pathlib.Path(TMP_DIR).mkdir(parents=True, exist_ok=True)
 os.environ["MLFLOW_TMP_DIR"] = TMP_DIR
 
-# MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+# MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 # mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
 
 
 app = FastAPI(

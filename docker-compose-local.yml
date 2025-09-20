@@ -61,13 +61,17 @@ services:
     container_name: backend_loc
     env_file:
       - ./.env
+    volumes:
+      - ./backend:/app
     environment:
-      - KEYCLOAK_SERVER_URL="http://keycloak:${KEYCLOAK_PORT}/"
+      - KEYCLOAK_SERVER_URL=http://keycloak:${KEYCLOAK_PORT}/
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     depends_on:
       - keycloak
       - postgres
+      - mlflow
     networks:
       - mlops_network
 
@@ -92,7 +96,7 @@ services:
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.1.4
-    container_name: mlflow_loc
+    container_name: mlflow
     env_file:
       - ./.env
     ports:
@@ -103,7 +107,6 @@ services:
     networks:
       - mlops_network
     restart: always
-    mem_limit: 200m
     command: >
       mlflow server
       --backend-store-uri sqlite:///mlflow/db/mlflow.db
