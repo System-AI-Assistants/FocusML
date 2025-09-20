@@ -8,7 +8,7 @@ import axios from 'axios';
 const { Title } = Typography;
 
 //const API_URL = 'https://aiassistant.smartlilac.com/api';
-const API_URL = 'http://localhost:8080';
+const API_URL = 'http://localhost:8000';
 
 
 function UserManagement() {
@@ -68,7 +68,7 @@ function UserManagement() {
 
   const handleDelete = async (userId) => {
     try {
-      await axios.delete(`${API_URL}/users/${userId}`, {
+      await axios.delete(`${API_URL}/users/${userId}/`, {
         headers: {
           Authorization: `Bearer ${keycloak.token}`,
         },

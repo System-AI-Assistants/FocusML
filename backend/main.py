@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import routes_users, routes_assistants, routes_models, routes_benchmarks
+from api import routes_users, routes_assistants, routes_models, routes_benchmarks, routes_statistics
 from core.config import settings
 
 load_dotenv()
@@ -47,6 +47,7 @@ app.include_router(routes_users.router)
 app.include_router(routes_assistants.router)
 app.include_router(routes_models.router)
 app.include_router(routes_benchmarks.router)
+app.include_router(routes_statistics.router)
 
 
 @app.get("/")

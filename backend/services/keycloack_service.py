@@ -3,6 +3,12 @@ from core.config import settings
 
 
 def get_keycloak_admin():
+    # print(settings.KEYCLOAK_SERVER_URL)
+    # print(settings.KEYCLOAK_ADMIN_NAME)
+    # print(settings.KEYCLOAK_ADMIN_PASSWORD)
+    # print(settings.KEYCLOAK_REALM_NAME)
+    # print(settings.KEYCLOAK_ADMIN_CLIENT_ID)
+    # print(settings.KEYCLOAK_ADMIN_CLIENT_SECRET)
     return KeycloakAdmin(
         server_url=settings.KEYCLOAK_SERVER_URL,
         username=settings.KEYCLOAK_ADMIN_NAME,

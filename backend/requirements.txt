@@ -13,3 +13,5 @@ mlflow
 pydantic-settings
 ollama
 datasets
+psutil
+GPUtil
