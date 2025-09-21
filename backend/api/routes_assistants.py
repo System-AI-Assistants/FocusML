@@ -15,6 +15,7 @@ import mlflow
 
 from schemas.chat import ChatResponse, ChatRequest
 from fastapi import BackgroundTasks
+from sqlalchemy import desc
 
 
 router = APIRouter(prefix="/assistants", tags=["Assistants"])
@@ -193,7 +194,7 @@ def get_assistant(assistant_id: int):
 def get_assistants():
     try:
         with SessionLocal() as session:
-            assistants = session.query(Assistant).all()
+            assistants = session.query(Assistant).order_by(desc(Assistant.create_time)).all()
             result = [
                 {
                     "id": assistant.id,

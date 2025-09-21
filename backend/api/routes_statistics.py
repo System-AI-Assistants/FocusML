@@ -16,6 +16,7 @@ from services.keycloack_service import get_keycloak_admin
 from schemas.statistics import StatisticsResponse, SystemMetrics, AssistantStats, UserStats, GPUMetrics
 import mlflow
 from mlflow.tracking import MlflowClient
+from datetime import datetime
 
 
 try:
@@ -129,14 +130,43 @@ def get_user_statistics(period: TimePeriod) -> UserStats:
         users = keycloak_admin.get_users()
         current_total = len(users) if users else 0
 
+        if not users:
+            return UserStats(total_users=0, change_percentage=None)
+
+        start_date, end_date = get_period_dates(period)
+
+        # Convert to ms epoch
+        end_ms = int(end_date.timestamp() * 1000)
+        start_ms = int(start_date.timestamp() * 1000) if start_date else None
+
+        # Count new users in period
+        if start_ms:
+            new_users = [
+                u for u in users
+                if start_ms <= u.get("createdTimestamp", 0) <= end_ms
+            ]
+            previous_total = len([
+                u for u in users if u.get("createdTimestamp", 0) < start_ms
+            ])
+        else:
+            # ALL_TIME: treat all users as "new"
+            new_users = users
+            previous_total = 0
+
+        change_percentage = (
+            (len(new_users) / previous_total * 100) if previous_total > 0 else None
+        )
+
         return UserStats(
             total_users=current_total,
-            change_percentage=None  # Would need historical tracking
+            change_percentage=change_percentage
         )
+
     except Exception as e:
         print(f"Failed to get user statistics from Keycloak: {e}")
-        # Return default values instead of failing completely
         return UserStats(total_users=0, change_percentage=None)
+
+
 
 def get_token_usage_statistics(session, period: TimePeriod) -> Dict[str, Any]:
     """Get token usage statistics from MLflow"""
@@ -219,15 +249,19 @@ def get_system_metrics() -> SystemMetrics:
         raise HTTPException(status_code=500, detail=f"Failed to get system metrics: {str(e)}")
 
 
+APP_START_TIME = datetime.utcnow()
 def calculate_availability_metrics() -> Dict[str, Any]:
 
+    now = datetime.utcnow()
+    uptime_seconds = (now - APP_START_TIME).total_seconds()
 
     return {
-        "availability_percentage": 99.95,
-        "uptime_hours": 720,
+        "availability_percentage": None,
+        "uptime_seconds": uptime_seconds,
         "total_requests": None,
         "failed_requests": None,
         "average_response_time_ms": None,
+        "since": APP_START_TIME.isoformat() + "Z"
         
     }
 

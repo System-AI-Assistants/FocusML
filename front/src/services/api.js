@@ -298,6 +298,7 @@ export const createBenchmarkRun = async (keycloak, payload) => {
   return res.json();
 };
 
+// Add this to your api.js file
 
 export const getStatistics = async (keycloak, period = '7days') => {
   if (!keycloak) {

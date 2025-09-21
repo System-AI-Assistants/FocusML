@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
+import React, {useState, useEffect} from 'react';
+import {useKeycloak} from '@react-keycloak/web';
 import './Dashboard.css';
 import {Card, Row, Col, Statistic, List, Typography, Progress, Tag, Spin} from 'antd';
 import {
@@ -25,29 +25,45 @@ import {getStatistics} from "../services/api";
 const {Title, Text} = Typography;
 
 function Dashboard() {
-  const { keycloak } = useKeycloak();
+  const {keycloak} = useKeycloak();
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('7days');
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
+  const [pollingEnabled, setPollingEnabled] = useState(true);
 
   // Fetch statistics data
-  const fetchStatistics = async (period) => {
+  const fetchStatistics = async (period, showLoading = true) => {
     if (!keycloak?.authenticated) return;
 
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const data = await getStatistics(keycloak, period);
       setStatistics(data);
     } catch (error) {
       console.error('Failed to fetch statistics:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
+  // Initial fetch and polling setup
   useEffect(() => {
     fetchStatistics(selectedPeriod);
-  }, [keycloak?.authenticated, selectedPeriod]);
+
+    // Set up polling only if enabled
+    let intervalId;
+    if (pollingEnabled && keycloak?.authenticated) {
+      intervalId = setInterval(() => {
+        fetchStatistics(selectedPeriod, false); // Don't show loading for background updates
+      }, 5000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [keycloak?.authenticated, selectedPeriod, pollingEnabled]);
 
   const handlePeriodChange = (newPeriod) => {
     setSelectedPeriod(newPeriod);
@@ -71,17 +87,37 @@ function Dashboard() {
   };
 
   // Format uptime display
-  const formatUptime = (hours) => {
-    if (!hours) return 'N/A';
-    const days = Math.floor(hours / 24);
-    const remainingHours = hours % 24;
-    return `${days} days ${remainingHours} hours`;
+  const formatUptime = (seconds) => {
+    if (!seconds) return 'N/A';
+
+    const days = Math.floor(seconds / (24 * 3600));
+    const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    const parts = [];
+    if (days) parts.push(`${days} d`);
+    if (hours) parts.push(`${hours} h`);
+    if (minutes || (!days && !hours)) parts.push(`${minutes} m`);
+
+    return parts.join(' ');
   };
+
 
   // Format large numbers
   const formatNumber = (num) => {
     if (num === null || num === undefined) return 'N/A';
     return new Intl.NumberFormat().format(num);
+  };
+
+  const formatSince = (isoString) => {
+    const date = new Date(isoString);
+    return date.toLocaleString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const recentActivity = [
@@ -131,8 +167,8 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="page-container">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-          <Spin size="large" />
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px'}}>
+          <Spin size="large"/>
         </div>
       </div>
     );
@@ -148,6 +184,44 @@ function Dashboard() {
             defaultPeriod={selectedPeriod}
             showQuickStats={true}
           />
+
+          {/* Polling indicator */}
+          <div style={{marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <div
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: pollingEnabled ? '#52c41a' : '#d9d9d9',
+                animation: pollingEnabled ? 'pulse 2s infinite' : 'none'
+              }}
+            />
+            <Text style={{fontSize: '12px', color: '#666'}}>
+              Auto-update {pollingEnabled ? 'ON' : 'OFF'} (5s)
+            </Text>
+            <button
+              onClick={() => setPollingEnabled(!pollingEnabled)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#1890ff',
+                cursor: 'pointer',
+                fontSize: '12px',
+                textDecoration: 'underline'
+              }}
+            >
+              {pollingEnabled ? 'Disable' : 'Enable'}
+            </button>
+          </div>
+
+          {/* Add CSS for pulse animation */}
+          <style jsx>{`
+            @keyframes pulse {
+              0% { opacity: 1; }
+              50% { opacity: 0.5; }
+              100% { opacity: 1; }
+            }
+          `}</style>
         </div>
       </div>
 
@@ -174,15 +248,19 @@ function Dashboard() {
             <div className="stat-value" style={{color: '#722ed1'}}>
               {formatNumber(statistics?.user_stats?.total_users)}
             </div>
-            <div style={{marginTop: '8px'}}>
-              <UserOutlined style={{color: '#722ed1', marginRight: '4px'}}/>
-              <Text>
-                {statistics?.user_stats?.change_percentage !== null
-                  ? `${statistics?.user_stats?.change_percentage > 0 ? '+' : ''}${statistics?.user_stats?.change_percentage}% change`
-                  : 'Historical data needed'
-                }
-              </Text>
-            </div>
+
+            {statistics?.user_stats?.change_percentage !== null
+              ? (
+                <div style={{marginTop: '8px'}}>
+                  <UserOutlined style={{color: '#722ed1', marginRight: '4px'}}/>
+                  <Text>
+                    {`${statistics?.user_stats?.change_percentage > 0 ? '+' : ''}${statistics?.user_stats?.change_percentage}% change`}
+                  </Text>
+                </div>
+              )
+              : null}
+
+
           </Card>
         </Col>
 
@@ -203,14 +281,14 @@ function Dashboard() {
 
         <Col xs={24} sm={12} lg={6}>
           <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
-            <div className="stat-title">Availability</div>
+            <div className="stat-title">Uptime</div>
             <div className="stat-value" style={{color: '#52c41a'}}>
-              {statistics?.availability?.availability_percentage?.toFixed(2) || '99.9'}%
+               Up {formatUptime(statistics?.availability?.uptime_seconds)}
             </div>
             <div style={{marginTop: '8px'}}>
               <CheckCircleOutlined style={{color: '#52c41a', marginRight: '4px'}}/>
-              <Text type="success">
-                Up {formatUptime(statistics?.availability?.uptime_hours)}
+              <Text>
+                Since {formatSince(statistics?.availability?.since)}
               </Text>
             </div>
           </Card>
@@ -220,22 +298,22 @@ function Dashboard() {
       <Row gutter={[24, 24]} style={{marginBottom: '24px'}}>
         <Col xs={24} lg={12}>
           <Card className="modern-card" title={<span className="card-title">Requests Over Time</span>}>
-            <StackedAreaChart height={300} />
+            <StackedAreaChart height={300}/>
           </Card>
         </Col>
 
         <Col xs={24} lg={12}>
           <Card className="modern-card" title={<span className="card-title">Token Usage Over Time</span>}>
             <RequestsChart type="area"
-              data={[
-                { time: '01:00', requests: 500 },
-                { time: '04:00', requests: 850 },
-                { time: '08:00', requests: 900 },
-                { time: '12:00', requests: 1920 },
-                { time: '16:00', requests: 2554 },
-                { time: '20:00', requests: 3200 },
-                { time: '24:00', requests: 3300 }
-              ]}
+                           data={[
+                             {time: '01:00', requests: 500},
+                             {time: '04:00', requests: 850},
+                             {time: '08:00', requests: 900},
+                             {time: '12:00', requests: 1920},
+                             {time: '16:00', requests: 2554},
+                             {time: '20:00', requests: 3200},
+                             {time: '24:00', requests: 3300}
+                           ]}
             />
           </Card>
         </Col>
@@ -244,13 +322,13 @@ function Dashboard() {
       <Row gutter={[24, 24]} style={{marginBottom: '24px'}}>
         <Col xs={24} lg={10}>
           <Card className="modern-card" title={<span className="card-title">Assistant Usage Distribution</span>}>
-            <AssistantsPieChart height={350} />
+            <AssistantsPieChart height={350}/>
           </Card>
         </Col>
 
         <Col xs={24} lg={14}>
           <Card className="modern-card" title={<span className="card-title">Model Latency Metrics</span>}>
-            <ModelLatencyChart height={350} />
+            <ModelLatencyChart height={350}/>
           </Card>
         </Col>
       </Row>
@@ -332,7 +410,8 @@ function Dashboard() {
                     <div key={index} style={{marginTop: '8px'}}>
                       <Text style={{fontSize: '12px', fontWeight: 600}}>{gpu.name}</Text>
                       <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '4px'}}>
-                        <Text style={{fontSize: '12px'}}>Memory: {gpu.memory_used?.toFixed(0)}MB / {gpu.memory_total?.toFixed(0)}MB</Text>
+                        <Text style={{fontSize: '12px'}}>Memory: {gpu.memory_used?.toFixed(0)}MB
+                          / {gpu.memory_total?.toFixed(0)}MB</Text>
                         <Text style={{fontSize: '12px'}}>Temp: {gpu.temperature}°C</Text>
                       </div>
                     </div>
