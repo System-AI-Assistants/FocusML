@@ -7,7 +7,7 @@
 .env.testdata.db
 certbot
 certbot/
-mlflow_data
+mlflow_data/
 backend/api/__pycache__
 backend/core/__pycache__
 backend/db/__pycache__
@@ -16,3 +16,4 @@ backend/schemas/__pycache__
 backend/services/__pycache__
 backend/__pycache__
 node_modules
+backend/test/__pycache__
