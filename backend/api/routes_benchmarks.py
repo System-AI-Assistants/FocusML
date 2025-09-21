@@ -33,7 +33,7 @@ MAX_NEW_TOKENS = 2048
 RANDOM_SEED = 609
 random.seed(RANDOM_SEED)
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434/")
 
 
 def _preprocess(rows):

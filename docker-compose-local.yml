@@ -66,6 +66,7 @@ services:
     environment:
       - KEYCLOAK_SERVER_URL=http://keycloak:${KEYCLOAK_PORT}/
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - OLLAMA_HOST=http://host.docker.internal:11434
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     depends_on:
@@ -95,7 +96,7 @@ services:
       - mlops_network
 
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v3.1.4
+    image: ghcr.io/mlflow/mlflow:v3.4.0
     container_name: mlflow
     env_file:
       - ./.env

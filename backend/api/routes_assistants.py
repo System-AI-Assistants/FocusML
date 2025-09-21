@@ -89,7 +89,7 @@ def initialize_mlflow_model(assistant_id: int, model_name: str):
                     python_model="api/ollama_model.py",  # << script file, not an instance
                     model_config={
                         "model_name": assistant.model,  # e.g., "mistral:7b"
-                        "ollama_host": os.getenv("OLLAMA_HOST", "http://ollama:11434"),
+                        "ollama_host": os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434/"),
                     },
                     # Keep dependencies minimal; pin mlflow to a recent version
                     pip_requirements=[
