@@ -11,7 +11,8 @@ import {
   UserOutlined,
   CodeSandboxOutlined,
   MenuOutlined,
-  DotChartOutlined
+  DotChartOutlined,
+  DatabaseOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -42,8 +43,8 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         <Menu.Item key="/" icon={<HomeOutlined />}>
           <Link to="/">Dashboard</Link>
         </Menu.Item>
-        <Menu.Item key="/experiments" icon={<ExperimentOutlined />}>
-          <Link to="/experiments">Experiments</Link>
+        <Menu.Item key="/collections" icon={<DatabaseOutlined />}>
+          <Link to="/collections">Data Collections</Link>
         </Menu.Item>
         <Menu.Item key="/assistants" icon={<AppstoreOutlined />}>
           <Link to="/assistants">Assistants</Link>

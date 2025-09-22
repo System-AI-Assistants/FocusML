@@ -12,6 +12,7 @@ import './App.css';
 import Assistants from './pages/Assistants';
 import AddAssistant from './pages/AddAssistant'
 import Benchmarking from './pages/Benchmarking';
+import DataCollections from "./pages/DataCollections";
 
 const { Content } = Layout;
 
@@ -37,6 +38,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/collections" element={<DataCollections />} />
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/add" element={<AddAssistant />} />
               <Route path="/benchmarking" element={<Benchmarking />} />
