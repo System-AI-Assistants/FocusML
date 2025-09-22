@@ -15,3 +15,8 @@ ollama
 datasets
 psutil
 GPUtil
+pandas
+openpyxl
+psycopg2
+pgai
+pgai[vectorizer-worker]

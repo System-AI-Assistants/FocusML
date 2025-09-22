@@ -5,6 +5,8 @@ volumes:
     driver: local
   mlflow_artifacts:
     driver: local
+  data:
+
 
 networks:
   mlops_network:
@@ -114,3 +116,28 @@ services:
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
       --port 5000
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: timescaledb
+    ports:
+      - "5433:5433"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    command: -p 5433
+    networks:
+      - mlops_network
+    restart: unless-stopped
+    volumes:
+     - data:/home/postgres/pgdata/data
+
+  vectorizer-worker:
+   image: timescale/pgai-vectorizer-worker:latest
+   environment:
+      PGAI_VECTORIZER_WORKER_DB_URL: postgres://postgres:postgres@localhost:5433/postgres
+      OLLAMA_HOST: http://host.docker.internal:11434
+   networks:
+      - mlops_network
+   command: [ "--poll-interval", "5s" ]
