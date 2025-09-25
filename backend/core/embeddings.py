@@ -121,6 +121,62 @@ class EmbeddingService:
         )
         """
 
+    async def generate_response(self, messages, model: str = "mistral:7b") -> str:
+        """
+        Generate a response using the specified model and messages
+
+        Args:
+            messages: List of messages in the format [{"role": "user", "content": "..."}, ...]
+            model: The model to use for generation (default: "mistral:7b")
+
+        Returns:
+            The generated response as a string
+        """
+        import httpx
+        
+        if not messages:
+            raise ValueError("No messages provided for generation")
+            
+        if not model:
+            model = "mistral:7b"
+            logger.warning("No model specified, using default: mistral:7b")
+
+        try:
+            # Prepare the request to the LLM API
+            url = f"{self.ollama_host.rstrip('/')}/api/chat"
+
+            # Format messages for the API
+            formatted_messages = [
+                {"role": msg.role if hasattr(msg, 'role') else msg.get('role'), 
+                 "content": msg.content if hasattr(msg, 'content') else msg.get('content')}
+                for msg in messages
+                if hasattr(msg, 'role') or 'role' in msg
+            ]
+
+            # Make the request to the LLM
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url,
+                    json={
+                        "model": model,
+                        "messages": formatted_messages,
+                        "stream": False
+                    },
+                    timeout=60.0  # 60 second timeout
+                )
+
+                if response.status_code != 200:
+                    error_msg = f"LLM API error: {response.status_code} - {response.text}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+
+                result = response.json()
+                return result.get("message", {}).get("content", "")
+                
+        except Exception as e:
+            logger.error(f"Error in generate_response: {str(e)}")
+            raise
+
     def process_dataframe(self, df: pd.DataFrame, collection_id: int, table_name: str) -> Dict[str, Any]:
         """Process a DataFrame and store its embeddings"""
         try:
