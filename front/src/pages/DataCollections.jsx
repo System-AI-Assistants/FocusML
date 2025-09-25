@@ -46,6 +46,9 @@ import './DataCollections.css';
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
+const API_BASE_URL = 'http://localhost:8000';
+
+
 const fileTypeIcons = {
   // Documents
   'application/pdf': <FilePdfOutlined />,
@@ -159,6 +162,9 @@ const DataCollections = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [inputMode, setInputMode] = useState(null); // 'url' or 'database'
   const [inputValue, setInputValue] = useState('');
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewData, setPreviewData] = useState({ columns: [], rows: [] });
+  const [previewLoading, setPreviewLoading] = useState(false);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const animationRef = useRef(null);
@@ -189,32 +195,79 @@ const DataCollections = () => {
   };
 
   // Handle view collection
-  const handleView = (record) => {
-    console.log('Viewing collection:', record);
-    message.info(`Viewing ${record.name}`);
-    // TODO: Implement view collection details
+  const handleView = async (record) => {
+    try {
+      setPreviewLoading(true);
+      setPreviewVisible(true);
+      
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/${record.id}/preview`, {
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load preview data');
+      }
+
+      const data = await response.json();
+      setPreviewData({
+        columns: data.columns || [],
+        rows: data.rows || []
+      });
+      
+    } catch (error) {
+      console.error('Failed to load preview:', error);
+      message.error('Failed to load preview data');
+      setPreviewVisible(false);
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   // Handle download collection
   const handleDownload = async (record) => {
-    console.log('Downloading collection:', record);
-    const hide = message.loading('Preparing download...', 0);
-    
     try {
-      // Simulate download delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      message.success('Download started!');
-      // TODO: Implement actual download functionality
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/${record.id}/download`, {
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      // Get the filename from the Content-Disposition header or use the record name
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = record.name;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+
+      // Create a blob from the response and trigger download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      
+      message.success(`Downloaded ${filename} successfully`);
     } catch (error) {
       console.error('Download failed:', error);
-      message.error('Failed to start download');
-    } finally {
-      hide();
+      message.error(error.message || 'Failed to download file');
     }
   };
 
   // Handle delete collection
-  const handleDelete = (record) => {
+  const handleDelete = async (record) => {
     Modal.confirm({
       title: 'Delete Collection',
       content: `Are you sure you want to delete "${record.name}"? This action cannot be undone.`,
@@ -223,13 +276,23 @@ const DataCollections = () => {
       cancelText: 'Cancel',
       onOk: async () => {
         try {
-          // TODO: Implement actual delete API call
-          await new Promise(resolve => setTimeout(resolve, 800));
-          setCollections(prev => prev.filter(item => item.id !== record.id));
+          const response = await fetch(`${API_BASE_URL}/data-collections/collections/${record.id}`, {
+            method: 'DELETE',
+            headers: { 
+              'Authorization': `Bearer ${keycloak.token}` 
+            }
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to delete collection');
+          }
+
           message.success('Collection deleted successfully');
+          refreshCollections();
         } catch (error) {
-          console.error('Delete failed:', error);
-          message.error('Failed to delete collection');
+          console.error('Failed to delete collection:', error);
+          message.error(error.message || 'Failed to delete collection');
         }
       },
     });
@@ -244,7 +307,7 @@ const DataCollections = () => {
       render: (text, record) => (
         <div className="file-cell">
           <span className="file-icon">
-            {getFileIcon(record.type)}
+            {getFileIcon(record.file_type || record.type)}
           </span>
           <span className="file-name">{text}</span>
         </div>
@@ -252,56 +315,59 @@ const DataCollections = () => {
     },
     {
       title: 'Type',
-      dataIndex: 'type',
+      dataIndex: 'file_type',
       key: 'type',
-      render: (type) => type.charAt(0).toUpperCase() + type.slice(1),
+      render: (type) => type ? type.toUpperCase() : 'Unknown',
     },
     {
       title: 'Size',
-      dataIndex: 'size',
       key: 'size',
-      render: (size) => size ? formatFileSize(size) : '-',
+      render: (_, record) => {
+        if (record.file_type === 'url') return 'N/A';
+        if (record.file_type === 'database') return 'N/A';
+        return record.size ? formatFileSize(record.size) : '-';
+      },
     },
     {
       title: 'Records',
-      dataIndex: 'records',
+      dataIndex: 'row_count',
       key: 'records',
-      render: (records) => records?.toLocaleString() || '-',
+      render: (count) => count ? count.toLocaleString() : '-',
     },
     {
       title: 'Uploaded',
-      dataIndex: 'uploadedAt',
+      dataIndex: 'created_at',
       key: 'uploadedAt',
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => date ? new Date(date).toLocaleString() : '-',
     },
     {
       title: 'Status',
-      dataIndex: 'status',
       key: 'status',
-      render: (status) => {
-        const statusMap = {
-          processed: { icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, text: 'Processed' },
-          processing: { icon: <ClockCircleOutlined style={{ color: '#faad14' }} />, text: 'Processing' },
-          error: { icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />, text: 'Error' },
-        };
-        const statusInfo = statusMap[status] || { icon: null, text: status };
-        return (
-          <Space>
-            {statusInfo.icon}
-            {statusInfo.text}
-          </Space>
-        );
-      },
+      render: () => (
+        <Tag color="green">Processed</Tag>
+      ),
     },
     {
       title: 'Actions',
       key: 'actions',
-      align: 'right',
       render: (_, record) => (
-        <Space>
-          <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<DownloadOutlined />} onClick={() => handleDownload(record)} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+        <Space size="middle">
+          <Button 
+            icon={<FileSearchOutlined />} 
+            onClick={() => handleView(record)}
+            title="View"
+          />
+          <Button 
+            icon={<DownloadOutlined />} 
+            onClick={() => handleDownload(record)}
+            title="Download"
+          />
+          <Button 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => handleDelete(record)}
+            title="Delete"
+          />
         </Space>
       ),
     },
@@ -391,56 +457,57 @@ const DataCollections = () => {
     setIsAnimating(true);
 
     try {
-      let response;
-      
       if (isFileUpload) {
         const formData = new FormData();
         formData.append('file', file);
         
-        // TODO: Replace with actual API call for file upload
-        // response = await fetch('/api/upload', {
-        //   method: 'POST',
-        //   headers: { 'Authorization': `Bearer ${keycloak.token}` },
-        //   body: formData,
-        // });
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      } else {
-        // TODO: Replace with actual API call for URL/database connection
-        // response = await fetch(`/api/${inputMode}`, {
-        //   method: 'POST',
-        //   headers: { 
-        //     'Content-Type': 'application/json',
-        //     'Authorization': `Bearer ${keycloak.token}` 
-        //   },
-        //   body: JSON.stringify({ [inputMode]: value })
-        // });
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      
-      // Simulate success
-      message.success(isFileUpload ? 'File uploaded successfully!' : `${inputMode === 'url' ? 'URL' : 'Database'} connected successfully!`);
-      
-      // Reset input
-      if (isFileUpload) {
+        const response = await fetch(`${API_BASE_URL}/data-collections/upload/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${keycloak.token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to upload file');
+        }
+
+        const result = await response.json();
+        message.success('File uploaded successfully!');
+        
+        // Refresh collections list
+        await refreshCollections();
+        
+        // Reset file input
         setFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       } else {
+        // Handle URL/Database connection
+        const response = await fetch(`/api/${inputMode}`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${keycloak.token}` 
+          },
+          body: JSON.stringify({ [inputMode]: value })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || `Failed to connect ${inputMode}`);
+        }
+
+        message.success(`${inputMode === 'url' ? 'URL' : 'Database'} connected successfully!`);
         setInputValue('');
         setInputMode(null);
+        
+        // Refresh collections list
+        await refreshCollections();
       }
-      
-      // Add to collections
-      const newCollection = {
-        id: `collection-${Date.now()}`,
-        name: isFileUpload ? file.name : (inputMode === 'url' ? 'Web Content' : 'Database Connection'),
-        type: isFileUpload ? 'file' : inputMode,
-        size: isFileUpload ? file.size : null,
-        status: 'processed',
-        uploadedAt: new Date().toISOString(),
-        records: Math.floor(Math.random() * 1000) + 100,
-        source: isFileUpload ? undefined : value
-      };
-      
-      setCollections(prev => [newCollection, ...prev]);
       
     } catch (error) {
       console.error('Operation failed:', error);
@@ -458,12 +525,31 @@ const DataCollections = () => {
   const refreshCollections = async () => {
     setTableLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real app, you would fetch the latest collections here
-      // const response = await fetch('/api/collections');
-      // const data = await response.json();
-      // setCollections(data);
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/`, {
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch collections');
+      }
+
+      const data = await response.json();
+      
+      // Format the data for the table
+      const formattedData = data.map(collection => ({
+        ...collection,
+        key: collection.id.toString(),
+        // Ensure all required fields have values
+        type: collection.file_type || 'file',
+        status: 'processed', // Default status
+        uploadedAt: collection.created_at,
+        records: collection.row_count || 0,
+        size: collection.size || 0
+      }));
+      
+      setCollections(formattedData);
     } catch (error) {
       console.error('Failed to refresh collections:', error);
       message.error('Failed to refresh collections');
@@ -691,11 +777,7 @@ const DataCollections = () => {
           dataSource={collections} 
           rowKey="id"
           loading={tableLoading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: false,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} collections`,
-          }}
+          pagination={{ pageSize: 10 }}
           locale={{
             emptyText: (
               <div className="empty-table">
@@ -705,9 +787,43 @@ const DataCollections = () => {
                   <CloudUploadOutlined /> Upload Your First File
                 </Button>
               </div>
-            ),
+            )
           }}
         />
+        
+        {/* Preview Modal */}
+        <Modal
+          title="Data Preview"
+          open={previewVisible}
+          onCancel={() => setPreviewVisible(false)}
+          footer={[
+            <Button key="close" onClick={() => setPreviewVisible(false)}>
+              Close
+            </Button>
+          ]}
+          width={1000}
+        >
+          {previewLoading ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div className="ant-spin ant-spin-lg" />
+              <p>Loading preview data...</p>
+            </div>
+          ) : (
+            <Table 
+              dataSource={previewData.rows}
+              columns={previewData.columns.map(column => ({
+                title: column,
+                dataIndex: column,
+                key: column,
+                ellipsis: true,
+              }))}
+              pagination={{ pageSize: 5 }}
+              size="small"
+              scroll={{ x: 'max-content' }}
+              rowKey={(record, index) => index}
+            />
+          )}
+        </Modal>
       </Card>
     </div>
   );
