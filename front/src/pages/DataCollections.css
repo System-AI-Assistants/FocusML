@@ -1,39 +1,155 @@
-.models-page-container {
-/*  padding: 24px;*/
+/* Main container */
+.data-collections-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   background: #f8f9fa;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-.models-page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Page header */
+.page-header {
   margin-bottom: 24px;
 }
 
-.ant-table-wrapper {
-  font-family: 'Inter', sans-serif;
-}
-
-.ant-table thead > tr > th {
+.page-header h2 {
+  margin-bottom: 8px;
   font-weight: 600;
-  background: #fff;
-  border-bottom: 1px solid var(--color-border);
+  color: #1f1f1f;
 }
 
-.ant-table tbody > tr:hover > td {
-  background: var(--color-bg-hover);
+/* Upload card */
+.upload-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
 }
 
-.ant-tag-green {
-  background: rgba(82, 196, 26, 0.15);
+.upload-card:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.upload-card .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.upload-card .ant-card-head-title {
+  font-weight: 500;
+  color: #1f1f1f;
+}
+
+/* Upload dragger */
+.upload-dragger {
+  /* padding: 24px; */
+  background: #fafafa;
+  /* border: 1px dashed #d9d9d9; */
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.upload-dragger:hover {
+  border-color: #1890ff;
+}
+
+.upload-dragger .ant-upload-drag-icon {
+  margin-bottom: 16px;
+}
+
+.upload-dragger .ant-upload-text {
+  margin-bottom: 8px;
+  color: #1f1f1f;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.upload-dragger .ant-upload-hint {
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+/* Collections table */
+.collections-table {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.collections-table .ant-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.collections-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+  color: #595959;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.collections-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.3s;
+}
+
+.collections-table .ant-table-tbody > tr:hover > td {
+  background: #fafafa;
+}
+
+/* Status tags */
+.ant-tag {
+  border-radius: 4px;
+  font-weight: 500;
+  padding: 0 8px;
+  line-height: 22px;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.ant-tag-success {
+  background: rgba(82, 196, 26, 0.1);
   color: #52c41a;
   border: none;
 }
 
-.ant-tag-orange {
-  background: rgba(250, 173, 20, 0.15);
-  color: #faad14;
+.ant-tag-processing {
+  background: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
   border: none;
+}
+
+.ant-tag-error {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+  border: none;
+}
+
+/* Action buttons */
+.ant-btn-icon-only {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .data-collections-container {
+    padding: 16px;
+  }
+  
+  .upload-card,
+  .collections-table {
+    margin-left: -16px;
+    margin-right: -16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 }
