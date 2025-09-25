@@ -8,6 +8,7 @@
 certbot
 certbot/
 mlflow_data/
+mlflow_data/mlflow.db
 backend/api/__pycache__
 backend/core/__pycache__
 backend/db/__pycache__
@@ -15,5 +16,7 @@ backend/db/models/__pycache__
 backend/schemas/__pycache__
 backend/services/__pycache__
 backend/__pycache__
+backend/tests/__pycache__/
+backend/uploads
 node_modules
 backend/test/__pycache__

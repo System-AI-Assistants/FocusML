@@ -18,17 +18,23 @@ import {
   Col
 } from 'antd';
 import { 
+  // File Icons
   CloudUploadOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
-  LinkOutlined,
-  DatabaseOutlined,
   FileTextOutlined,
   FileImageOutlined,
   FileZipOutlined,
   FileWordOutlined,
+  FilePptOutlined,
+  FileOutlined,
   FileMarkdownOutlined,
   FileUnknownOutlined,
+  FileSearchOutlined,
+  SoundOutlined,
+  // Other Icons
+  LinkOutlined,
+  DatabaseOutlined,
   MoreOutlined,
   DeleteOutlined,
   DownloadOutlined,
@@ -37,7 +43,7 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   ReloadOutlined,
-  FileSearchOutlined
+  VideoCameraOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKeycloak } from '@react-keycloak/web';
@@ -117,7 +123,14 @@ const mockCollections = [
 ];
 
 const getFileTypeIcon = (type) => {
-  switch(type) {
+  if (!type) return <FileUnknownOutlined />;
+
+  const normalizedType = type.toLowerCase();
+
+  switch(normalizedType) {
+    case 'csv':
+    case 'xlsx':
+    case 'xls':
     case 'spreadsheet':
       return <FileExcelOutlined style={{ color: '#52c41a' }} />;
     case 'pdf':
@@ -125,11 +138,30 @@ const getFileTypeIcon = (type) => {
     case 'database':
       return <DatabaseOutlined style={{ color: '#722ed1' }} />;
     case 'web':
+    case 'url':
       return <LinkOutlined style={{ color: '#1890ff' }} />;
     case 'text':
+    case 'txt':
       return <FileTextOutlined style={{ color: '#13c2c2' }} />;
     default:
-      return <FileUnknownOutlined />;
+      // For unknown types, try to match common file extensions
+      if (normalizedType.includes('excel') || normalizedType.includes('sheet')) {
+        return <FileExcelOutlined style={{ color: '#52c41a' }} />;
+      } else if (normalizedType.includes('word') || normalizedType.includes('doc')) {
+        return <FileWordOutlined style={{ color: '#1890ff' }} />;
+      } else if (normalizedType.includes('powerpoint') || normalizedType.includes('ppt')) {
+        return <FilePptOutlined style={{ color: '#fa8c16' }} />;
+      } else if (normalizedType.includes('image')) {
+        return <FileImageOutlined style={{ color: '#722ed1' }} />;
+      } else if (normalizedType.includes('zip') || normalizedType.includes('rar') || normalizedType.includes('7z')) {
+        return <FileZipOutlined style={{ color: '#fa8c16' }} />;
+      } else if (normalizedType.includes('audio') || normalizedType.includes('mp3') || normalizedType.includes('wav')) {
+        return <SoundOutlined style={{ color: '#13c2c2' }} />;
+      } else if (normalizedType.includes('video') || normalizedType.includes('mp4') || normalizedType.includes('mov')) {
+        return <VideoCameraOutlined style={{ color: '#eb2f96' }} />;
+      } else {
+        return <FileOutlined />;
+      }
   }
 };
 
@@ -307,7 +339,7 @@ const DataCollections = () => {
       render: (text, record) => (
         <div className="file-cell">
           <span className="file-icon">
-            {getFileIcon(record.file_type || record.type)}
+            {getFileTypeIcon(record.file_type || record.type)}
           </span>
           <span className="file-name">{text}</span>
         </div>
