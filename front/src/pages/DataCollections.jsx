@@ -1,18 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Button, 
+  Card, 
   Typography, 
   Upload, 
+  Space, 
   message, 
-  Space,
   Input,
+  Modal,
   Tooltip,
   Table,
   Tag,
   Dropdown,
   Menu,
   Progress,
-  Card,
   Row,
   Col
 } from 'antd';
@@ -156,7 +157,10 @@ const DataCollections = () => {
   const [collections, setCollections] = useState(mockCollections);
   const [tableLoading, setTableLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [inputMode, setInputMode] = useState(null); // 'url' or 'database'
+  const [inputValue, setInputValue] = useState('');
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
   const animationRef = useRef(null);
   const animationTexts = [
     'Analyzing content...',
@@ -166,6 +170,149 @@ const DataCollections = () => {
     'Almost there...'
   ];
   const [textIndex, setTextIndex] = useState(0);
+
+  // Format file size to human-readable format
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Handle file removal
+  const handleRemove = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle view collection
+  const handleView = (record) => {
+    console.log('Viewing collection:', record);
+    message.info(`Viewing ${record.name}`);
+    // TODO: Implement view collection details
+  };
+
+  // Handle download collection
+  const handleDownload = async (record) => {
+    console.log('Downloading collection:', record);
+    const hide = message.loading('Preparing download...', 0);
+    
+    try {
+      // Simulate download delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      message.success('Download started!');
+      // TODO: Implement actual download functionality
+    } catch (error) {
+      console.error('Download failed:', error);
+      message.error('Failed to start download');
+    } finally {
+      hide();
+    }
+  };
+
+  // Handle delete collection
+  const handleDelete = (record) => {
+    Modal.confirm({
+      title: 'Delete Collection',
+      content: `Are you sure you want to delete "${record.name}"? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          // TODO: Implement actual delete API call
+          await new Promise(resolve => setTimeout(resolve, 800));
+          setCollections(prev => prev.filter(item => item.id !== record.id));
+          message.success('Collection deleted successfully');
+        } catch (error) {
+          console.error('Delete failed:', error);
+          message.error('Failed to delete collection');
+        }
+      },
+    });
+  };
+
+  // Table columns definition
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <div className="file-cell">
+          <span className="file-icon">
+            {getFileIcon(record.type)}
+          </span>
+          <span className="file-name">{text}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => type.charAt(0).toUpperCase() + type.slice(1),
+    },
+    {
+      title: 'Size',
+      dataIndex: 'size',
+      key: 'size',
+      render: (size) => size ? formatFileSize(size) : '-',
+    },
+    {
+      title: 'Records',
+      dataIndex: 'records',
+      key: 'records',
+      render: (records) => records?.toLocaleString() || '-',
+    },
+    {
+      title: 'Uploaded',
+      dataIndex: 'uploadedAt',
+      key: 'uploadedAt',
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const statusMap = {
+          processed: { icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />, text: 'Processed' },
+          processing: { icon: <ClockCircleOutlined style={{ color: '#faad14' }} />, text: 'Processing' },
+          error: { icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />, text: 'Error' },
+        };
+        const statusInfo = statusMap[status] || { icon: null, text: status };
+        return (
+          <Space>
+            {statusInfo.icon}
+            {statusInfo.text}
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'right',
+      render: (_, record) => (
+        <Space>
+          <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
+          <Button type="text" icon={<DownloadOutlined />} onClick={() => handleDownload(record)} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)} />
+        </Space>
+      ),
+    },
+  ];
+
+  // Focus input when mode changes
+  useEffect(() => {
+    if (inputMode && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [inputMode]);
 
   useEffect(() => {
     if (uploading) {
@@ -234,175 +381,139 @@ const DataCollections = () => {
     });
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleUpload = async (value = null) => {
+    const isFileUpload = !inputMode;
+    
+    if (isFileUpload && !file) return;
+    if (!isFileUpload && !value?.trim()) return;
 
     setUploading(true);
     setIsAnimating(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/upload', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${keycloak.token}`,
-      //   },
-      //   body: formData,
-      // });
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      let response;
       
-      setUploadProgress(100);
-      message.success('File uploaded and processed successfully!');
+      if (isFileUpload) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // TODO: Replace with actual API call for file upload
+        // response = await fetch('/api/upload', {
+        //   method: 'POST',
+        //   headers: { 'Authorization': `Bearer ${keycloak.token}` },
+        //   body: formData,
+        // });
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      } else {
+        // TODO: Replace with actual API call for URL/database connection
+        // response = await fetch(`/api/${inputMode}`, {
+        //   method: 'POST',
+        //   headers: { 
+        //     'Content-Type': 'application/json',
+        //     'Authorization': `Bearer ${keycloak.token}` 
+        //   },
+        //   body: JSON.stringify({ [inputMode]: value })
+        // });
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       
-      // Reset after success
-      setTimeout(() => {
+      // Simulate success
+      message.success(isFileUpload ? 'File uploaded successfully!' : `${inputMode === 'url' ? 'URL' : 'Database'} connected successfully!`);
+      
+      // Reset input
+      if (isFileUpload) {
         setFile(null);
+      } else {
+        setInputValue('');
+        setInputMode(null);
+      }
+      
+      // Add to collections
+      const newCollection = {
+        id: `collection-${Date.now()}`,
+        name: isFileUpload ? file.name : (inputMode === 'url' ? 'Web Content' : 'Database Connection'),
+        type: isFileUpload ? 'file' : inputMode,
+        size: isFileUpload ? file.size : null,
+        status: 'processed',
+        uploadedAt: new Date().toISOString(),
+        records: Math.floor(Math.random() * 1000) + 100,
+        source: isFileUpload ? undefined : value
+      };
+      
+      setCollections(prev => [newCollection, ...prev]);
+      
+    } catch (error) {
+      console.error('Operation failed:', error);
+      message.error(`Failed to ${isFileUpload ? 'upload file' : `connect ${inputMode}`}. Please try again.`);
+    } finally {
+      // Smoothly complete the progress bar before resetting
+      setTimeout(() => {
         setUploading(false);
         setUploadProgress(0);
         setIsAnimating(false);
-      }, 1500);
-
-    } catch (error) {
-      console.error('Upload failed:', error);
-      message.error('Upload failed. Please try again.');
-      setUploading(false);
-      setIsAnimating(false);
+      }, 1000);
     }
   };
-
-  const handleRemove = () => {
-    setFile(null);
-    setUploadProgress(0);
-    setUploading(false);
-    setIsAnimating(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <div className="file-cell">
-          <span className="file-icon">
-            {getFileTypeIcon(record.type)}
-          </span>
-          <span className="file-name">{text}</span>
-        </div>
-      ),
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type) => (
-        <Tag color={type === 'spreadsheet' ? 'green' : type === 'pdf' ? 'red' : type === 'database' ? 'purple' : 'blue'}>
-          {type.charAt(0).toUpperCase() + type.slice(1)}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Size',
-      dataIndex: 'size',
-      key: 'size',
-    },
-    {
-      title: 'Records',
-      dataIndex: 'records',
-      key: 'records',
-      render: (records) => records > 0 ? records.toLocaleString() : '-',
-    },
-    {
-      title: 'Uploaded',
-      dataIndex: 'uploadedAt',
-      key: 'uploadedAt',
-      render: (date) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status, record) => getStatusTag(status, record.progress, record.error),
-    },
-    {
-      title: '',
-      key: 'action',
-      render: (_, record) => (
-        <Dropdown
-          overlay={
-            <Menu
-              items={[
-                {
-                  key: 'view',
-                  label: 'View Details',
-                  icon: <EyeOutlined />,
-                  onClick: () => message.info(`Viewing ${record.name}`),
-                },
-                {
-                  key: 'download',
-                  label: 'Download',
-                  icon: <DownloadOutlined />,
-                  disabled: record.status !== 'processed',
-                  onClick: () => message.info(`Downloading ${record.name}`),
-                },
-                {
-                  type: 'divider',
-                },
-                {
-                  key: 'delete',
-                  label: 'Delete',
-                  icon: <DeleteOutlined />,
-                  danger: true,
-                  onClick: () => {
-                    setCollections(collections.filter(item => item.id !== record.id));
-                    message.success(`${record.name} deleted`);
-                  },
-                },
-              ]}
-            />
-          }
-          trigger={['click']}
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
-      ),
-    },
-  ];
 
   const refreshCollections = async () => {
     setTableLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/collections', {
-      //   headers: {
-      //     'Authorization': `Bearer ${keycloak.token}`,
-      //   },
-      // });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, you would fetch the latest collections here
+      // const response = await fetch('/api/collections');
       // const data = await response.json();
       // setCollections(data);
-      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
-      console.error('Failed to load collections:', error);
-      message.error('Failed to load collections');
+      console.error('Failed to refresh collections:', error);
+      message.error('Failed to refresh collections');
     } finally {
       setTableLoading(false);
     }
+  };
+
+  const renderInputField = () => {
+    const placeholder = inputMode === 'url' 
+      ? 'Paste URL (e.g., https://example.com/data)' 
+      : 'Enter database connection string';
+    
+    const icon = inputMode === 'url' ? <LinkOutlined /> : <DatabaseOutlined />;
+    
+    return (
+      <div className="input-field-container">
+        <Input
+          ref={inputRef}
+          size="large"
+          placeholder={placeholder}
+          prefix={icon}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onPressEnter={() => handleUpload(inputValue)}
+          disabled={uploading}
+          className="input-field"
+        />
+        <div className="input-actions">
+          <Button 
+            type="text" 
+            onClick={() => {
+              setInputMode(null);
+              setInputValue('');
+            }}
+            disabled={uploading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="primary" 
+            onClick={() => handleUpload(inputValue)}
+            loading={uploading}
+            disabled={!inputValue.trim()}
+          >
+            {inputMode === 'url' ? 'Fetch Data' : 'Connect'}
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -428,100 +539,100 @@ const DataCollections = () => {
       >
 
         <div
-          className={`upload-container ${isDragging ? 'dragging' : ''} ${file ? 'has-file' : ''}`}
+          className={`upload-container ${inputMode ? 'hidden' : ''} ${isDragging ? 'dragging' : ''} ${file ? 'has-file' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => !file && fileInputRef.current?.click()}
         >
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-          multiple={false}
-        />
-        
-        {!file ? (
-          <div className="upload-placeholder">
-            <CloudUploadOutlined className="upload-icon" />
-            <h3>Drag & Drop your file here</h3>
-            <p>or click to browse files</p>
-            <div className="file-types">
-              <span>Supports: </span>
-              <span className="file-type-tag">PDF</span>
-              <span className="file-type-tag">DOCX</span>
-              <span className="file-type-tag">XLSX</span>
-              <span className="file-type-tag">CSV</span>
-              <span className="file-type-tag">TXT</span>
-              <span className="file-type-tag">JSON</span>
-              <span className="file-type-tag">and more...</span>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+            multiple={false}
+          />
+          
+          {!file ? (
+            <div className="upload-placeholder">
+              <CloudUploadOutlined className="upload-icon" />
+              <h3>Drag & Drop your file here</h3>
+              <p>or click to browse files</p>
+              <div className="file-types">
+                <span>Supports: </span>
+                <span className="file-type-tag">PDF</span>
+                <span className="file-type-tag">DOCX</span>
+                <span className="file-type-tag">XLSX</span>
+                <span className="file-type-tag">CSV</span>
+                <span className="file-type-tag">TXT</span>
+                <span className="file-type-tag">JSON</span>
+                <span className="file-type-tag">and more...</span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="file-preview">
-            <div className="file-info">
-              <div className="file-icon">
-                {getFileIcon(file.type)}
+          ) : (
+            <div className="file-preview">
+              <div className="file-info">
+                <div className="file-icon">
+                  {getFileIcon(file.type)}
+                </div>
+                <div className="file-details">
+                  <h4>{file.name}</h4>
+                  <p>{formatFileSize(file.size)} • {file.type || 'Unknown type'}</p>
+                </div>
+                <Button
+                  type="text"
+                  danger
+                  className="remove-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove();
+                  }}
+                >
+                  Remove
+                </Button>
               </div>
-              <div className="file-details">
-                <h4>{file.name}</h4>
-                <p>{formatFileSize(file.size)} • {file.type || 'Unknown type'}</p>
-              </div>
-              <Button
-                type="text"
-                danger
-                className="remove-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove();
-                }}
-              >
-                Remove
-              </Button>
+
+              {uploading && (
+                <div className="upload-progress">
+                  <div className="progress-text">
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={textIndex}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {animationTexts[textIndex]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <div className="progress-percent">{uploadProgress}%</div>
+                </div>
+              )}
+
+              {!uploading && (
+                <Button
+                  type="primary"
+                  size="large"
+                  className="upload-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpload();
+                  }}
+                  icon={<CloudUploadOutlined />}
+                >
+                  Process File
+                </Button>
+              )}
             </div>
-
-            {uploading && (
-              <div className="upload-progress">
-                <div className="progress-text">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={textIndex}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {animationTexts[textIndex]}
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-                <div className="progress-percent">{uploadProgress}%</div>
-              </div>
-            )}
-
-            {!uploading && (
-              <Button
-                type="primary"
-                size="large"
-                className="upload-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleUpload();
-                }}
-                icon={<CloudUploadOutlined />}
-              >
-                Process File
-              </Button>
-            )}
-          </div>
-        )}
+          )}
         </div>
 
         <div className="additional-options">
@@ -534,6 +645,8 @@ const DataCollections = () => {
               type="text"
               icon={<LinkOutlined />}
               className="quick-action-btn"
+              onClick={() => setInputMode('url')}
+              disabled={!!inputMode}
             >
               Paste URL
             </Button>
@@ -541,10 +654,18 @@ const DataCollections = () => {
               type="text"
               icon={<DatabaseOutlined />}
               className="quick-action-btn"
+              onClick={() => setInputMode('database')}
+              disabled={!!inputMode}
             >
               Connect Database
             </Button>
           </div>
+          
+          {inputMode && (
+            <div className="input-container">
+              {renderInputField()}
+            </div>
+          )}
         </div>
       </Card>
 
