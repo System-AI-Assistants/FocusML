@@ -436,89 +436,76 @@ const DataCollections = () => {
     // Reset any previous state
     setFile(null);
     setUploadProgress(0);
-
-    // Set the new file
+    
+    // Create a preview URL for the file
+    const preview = URL.createObjectURL(file);
+    
+    // Store both the file object and its properties
     setFile({
+      file: file,  // Store the actual file object
       name: file.name,
       type: file.type,
       size: file.size,
       lastModified: file.lastModified,
-      preview: URL.createObjectURL(file)
+      preview: preview
     });
   };
 
-  const handleUpload = async (value = null) => {
-    const isFileUpload = !inputMode;
-    
-    if (isFileUpload && !file) return;
-    if (!isFileUpload && !value?.trim()) return;
+  const handleUpload = async () => {
+    if (!file) {
+      message.error('Please select a file first!');
+      return;
+    }
 
     setUploading(true);
     setIsAnimating(true);
 
     try {
-      if (isFileUpload) {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch(`${API_BASE_URL}/data-collections/upload/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${keycloak.token}`,
-          },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Failed to upload file');
-        }
-
-        const result = await response.json();
-        message.success('File uploaded successfully!');
-        
-        // Refresh collections list
-        await refreshCollections();
-        
-        // Reset file input
-        setFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        // Handle URL/Database connection
-        const response = await fetch(`/api/${inputMode}`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${keycloak.token}` 
-          },
-          body: JSON.stringify({ [inputMode]: value })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || `Failed to connect ${inputMode}`);
-        }
-
-        message.success(`${inputMode === 'url' ? 'URL' : 'Database'} connected successfully!`);
-        setInputValue('');
-        setInputMode(null);
-        
-        // Refresh collections list
-        await refreshCollections();
-      }
+      // Get the actual file object
+      const fileObj = file.file || file;
       
+      const formData = new FormData();
+      // Create a new File object to ensure it's a proper file
+      const fileToUpload = new File(
+        [fileObj], 
+        file.name, 
+        { type: file.type, lastModified: file.lastModified }
+      );
+      
+      formData.append('file', fileToUpload, file.name);
+
+      console.log('Sending file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        isFile: fileToUpload instanceof File
+      });
+
+      // Don't set Content-Type header - let the browser set it with the boundary
+      const response = await fetch(`${API_BASE_URL}/data-collections/upload/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        console.error('Upload error:', error);
+        throw new Error(error.detail || 'Failed to upload file');
+      }
+
+      const result = await response.json();
+      message.success('File uploaded successfully!');
+      refreshCollections();
+      setFile(null);
     } catch (error) {
-      console.error('Operation failed:', error);
-      message.error(`Failed to ${isFileUpload ? 'upload file' : `connect ${inputMode}`}. Please try again.`);
+      console.error('Upload failed:', error);
+      message.error(error.message || 'Upload failed. Please try again.');
     } finally {
-      // Smoothly complete the progress bar before resetting
-      setTimeout(() => {
-        setUploading(false);
-        setUploadProgress(0);
-        setIsAnimating(false);
-      }, 1000);
+      setUploading(false);
+      setIsAnimating(false);
     }
   };
 
@@ -591,11 +578,11 @@ const DataCollections = () => {
           </Button>
           <Button 
             type="primary" 
-            onClick={() => handleUpload(inputValue)}
+            onClick={handleUpload}
             loading={uploading}
-            disabled={!inputValue.trim()}
+            disabled={!file}
           >
-            {inputMode === 'url' ? 'Fetch Data' : 'Connect'}
+            Process File
           </Button>
         </div>
       </div>

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import routes_users, routes_assistants, routes_models, routes_benchmarks, routes_statistics
 from api.routes_data_collections import router as data_collections_router
 from core.config import settings
-from database import init_db
+
 
 load_dotenv()
 
