@@ -300,34 +300,57 @@ const DataCollections = () => {
 
   // Handle delete collection
   const handleDelete = async (record) => {
-    Modal.confirm({
-      title: 'Delete Collection',
-      content: `Are you sure you want to delete "${record.name}"? This action cannot be undone.`,
-      okText: 'Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: async () => {
+    console.log('Delete button clicked for record:', record);
+    
+    // Simple JavaScript confirm dialog
+    const isConfirmed = window.confirm(`Are you sure you want to delete "${record.name}"? This action cannot be undone.`);
+    
+    if (!isConfirmed) {
+      console.log('Delete operation cancelled by user');
+      return;
+    }
+    
+    try {
+      console.log('Sending DELETE request to:', `${API_BASE_URL}/data-collections/collections/${record.id}`);
+      
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/${record.id}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${keycloak.token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      console.log('Delete response status:', response.status);
+      
+      if (!response.ok) {
+        let errorDetail = 'Failed to delete collection';
         try {
-          const response = await fetch(`${API_BASE_URL}/data-collections/collections/${record.id}`, {
-            method: 'DELETE',
-            headers: { 
-              'Authorization': `Bearer ${keycloak.token}` 
-            }
-          });
-
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to delete collection');
-          }
-
-          message.success('Collection deleted successfully');
-          refreshCollections();
-        } catch (error) {
-          console.error('Failed to delete collection:', error);
-          message.error(error.message || 'Failed to delete collection');
+          const errorData = await response.json();
+          console.error('Delete error response:', errorData);
+          errorDetail = errorData.detail || errorDetail;
+        } catch (e) {
+          const errorText = await response.text();
+          console.error('Could not parse error response as JSON:', errorText);
+          errorDetail = response.statusText || errorDetail;
         }
-      },
-    });
+        throw new Error(errorDetail);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      console.log('Delete successful, refreshing collections...');
+      
+      // Show success message
+      alert(result.message || 'Collection deleted successfully');
+      
+      // Refresh the collections list
+      await refreshCollections();
+      
+    } catch (error) {
+      console.error('Delete operation failed:', error);
+      alert(error.message || 'Failed to delete collection');
+    }
   };
 
   // Table columns definition

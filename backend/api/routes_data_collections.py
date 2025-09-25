@@ -171,32 +171,53 @@ async def download_collection(collection_id: int, ):
             }
         )
 
-@router.delete("/collections/{collection_id}/")
-def delete_collection(collection_id: int, ):
+@router.delete("/collections/{collection_id}")
+async def delete_collection(collection_id: int):
     """Delete a data collection and its associated file"""
     with SessionLocal() as db:
         # Find the collection
         collection = db.query(DataCollection).filter(DataCollection.id == collection_id).first()
         if not collection:
+            error_msg = f"Collection with ID {collection_id} not found"
+            print(error_msg)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Collection not found"
+                detail=error_msg
             )
+
+        print(f"Found collection: {collection.name} (ID: {collection.id})")
+        print(f"File path: {collection.file_path}")
 
         try:
             # Delete the file if it exists
-            if collection.file_path and os.path.exists(collection.file_path):
-                os.remove(collection.file_path)
+            if collection.file_path:
+                file_path = os.path.abspath(collection.file_path)
+                print(f"Attempting to delete file: {file_path}")
+                
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        print(f"Successfully deleted file: {file_path}")
+                    except Exception as e:
+                        error_msg = f"Warning: Could not delete file {file_path}: {str(e)}"
+                        print(error_msg)
+                        # Continue with DB deletion even if file deletion fails
+                else:
+                    print(f"File not found at path: {file_path}")
 
             # Delete the database record
+            print("Deleting database record...")
             db.delete(collection)
             db.commit()
+            print("Database record deleted successfully")
 
             return {"message": "Collection deleted successfully"}
 
         except Exception as e:
             db.rollback()
+            error_msg = f"Error deleting collection {collection_id}: {str(e)}"
+            print(error_msg)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error deleting collection: {str(e)}"
+                detail=error_msg
             )
