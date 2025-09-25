@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status, Response
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Response, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 import os
 import pandas as pd
-from datetime import datetime
 import json
 import uuid
-import mimetypes
+import logging
 
 from db.session import SessionLocal
-
 from db.models.data_collection import DataCollection
+from tasks.embedding_tasks import process_embeddings_task
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -26,79 +27,125 @@ def allowed_file(filename: str) -> bool:
 
 @router.post("/upload/")
 async def upload_file(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...)
 ):
-    with SessionLocal() as db:
+    db = SessionLocal()
+    try:
+        # Check if the file is valid
+        if not file.filename or not allowed_file(file.filename):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            )
+
+        # Generate a unique filename
+        file_ext = file.filename.rsplit(".", 1)[1].lower()
+        unique_filename = f"{uuid.uuid4()}.{file_ext}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+
+        # Ensure upload directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Save the file
+        with open(file_path, "wb") as buffer:
+            content = await file.read()  # Read the file content
+            buffer.write(content)
+
+        # Read the file to get metadata
         try:
-            # Check if the file is valid
-            if not file.filename or not allowed_file(file.filename):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
-                )
+            if file_ext == "csv":
+                df = pd.read_csv(file_path)
+            else:  # xlsx
+                df = pd.read_excel(file_path)
 
-            # Generate a unique filename
-            file_ext = file.filename.rsplit(".", 1)[1].lower()
-            unique_filename = f"{uuid.uuid4()}.{file_ext}"
-            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            # Convert all columns to string and handle NaN values
+            df = df.astype(str).fillna('')
 
-            # Ensure upload directory exists
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            # Create a new collection record
+            collection = DataCollection(
+                name=file.filename,
+                file_path=file_path,
+                file_type=file_ext,
+                columns=json.dumps(df.columns.tolist()),
+                row_count=len(df),
+                embeddings_status='pending'
+            )
 
-            # Save the file
-            with open(file_path, "wb") as buffer:
-                content = await file.read()  # Read the file content
-                buffer.write(content)
+            db.add(collection)
+            db.commit()
+            db.refresh(collection)
 
-            try:
-                # Read the file to get metadata
-                if file_ext == "csv":
-                    df = pd.read_csv(file_path)
-                else:  # xlsx
-                    df = pd.read_excel(file_path)
+            # Get the collection ID for the background task
+            collection_id = collection.id
 
-                # Create database record
-                db_collection = DataCollection(
-                    name=file.filename,
-                    file_path=file_path,
-                    file_type=file_ext,
-                    columns=json.dumps(df.columns.tolist()),
-                    row_count=len(df)
-                )
+            # Start background task for embeddings
+            background_tasks.add_task(
+                process_embeddings_task,
+                collection_id=collection_id
+            )
 
-                db.add(db_collection)
-                db.commit()
-                db.refresh(db_collection)
+            return {
+                "id": collection.id,
+                "name": collection.name,
+                "file_type": collection.file_type,
+                "row_count": collection.row_count,
+                "created_at": collection.created_at.isoformat() if collection.created_at else None,
+                "embeddings_status": collection.embeddings_status,
+                "message": "File uploaded successfully. Embedding process has started in the background."
+            }
 
-                return {"message": "File uploaded successfully", "id": db_collection.id}
-
-            except Exception as e:
-                db.rollback()
-                # Clean up the file if something went wrong
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Error processing file: {str(e)}"
-                )
-
-        except HTTPException:
-            raise
         except Exception as e:
-            # Clean up the file if something went wrong
+            # Clean up the uploaded file if there was an error
             if os.path.exists(file_path):
                 os.remove(file_path)
+            logger.error(f"Error processing file: {str(e)}")
+            db.rollback()
+            db.close()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Unexpected error: {str(e)}"
+                detail=f"Error processing file: {str(e)}"
             )
+
+    except HTTPException:
+        db.close()
+        raise
+    except Exception as e:
+        db.close()
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
 
 @router.get("/collections/", response_model=List[dict])
 def list_collections():
     """List all data collections"""
     with SessionLocal() as db:
         collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
-        return [collection.to_dict() for collection in collections]
+        return [{
+            **collection.to_dict(),
+            "embeddings_status": collection.embeddings_status,
+            "embeddings_metadata": collection.embeddings_metadata or {}
+        } for collection in collections]
+
+@router.get("/collections/{collection_id}/embedding-status")
+def get_embedding_status(collection_id: int):
+    """Get the embedding status for a specific collection"""
+    with SessionLocal() as db:
+        collection = db.query(DataCollection).filter(DataCollection.id == collection_id).first()
+        if not collection:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Collection with ID {collection_id} not found"
+            )
+
+        return {
+            "collection_id": collection.id,
+            "name": collection.name,
+            "embeddings_status": collection.embeddings_status,
+            "embeddings_metadata": collection.embeddings_metadata or {}
+        }
 
 @router.get("/collections/{collection_id}/preview/")
 async def preview_collection(collection_id: int, ):

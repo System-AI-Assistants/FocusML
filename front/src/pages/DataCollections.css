@@ -409,8 +409,8 @@
 }
 
 .empty-table .anticon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  font-size: 22px;
+  /* margin-bottom: 16px; */
   color: #d9d9d9;
 }
 

@@ -189,8 +189,10 @@ const DataCollections = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [collections, setCollections] = useState(mockCollections);
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
+  const [refreshingStatusId, setRefreshingStatusId] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [inputMode, setInputMode] = useState(null); // 'url' or 'database'
   const [inputValue, setInputValue] = useState('');
@@ -353,6 +355,38 @@ const DataCollections = () => {
     }
   };
 
+  // Function to check embedding status
+  const checkEmbeddingStatus = async (collectionId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/${collectionId}/embedding-status`, {
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch embedding status');
+      }
+      
+      const data = await response.json();
+      
+      // Update the collection in the state
+      setCollections(prevCollections => 
+        prevCollections.map(collection => 
+          collection.id === data.collection_id 
+            ? { ...collection, ...data } 
+            : collection
+        )
+      );
+      
+      return data;
+    } catch (error) {
+      console.error('Error checking embedding status:', error);
+      message.error('Failed to check embedding status');
+      throw error;
+    }
+  };
+
   // Table columns definition
   const columns = [
     {
@@ -403,8 +437,44 @@ const DataCollections = () => {
       ),
     },
     {
+      title: 'Embedding Status',
+      key: 'embedding_status',
+      width: 200,
+      render: (_, record) => {
+        const status = record.embeddings_status || 'pending';
+        const isProcessing = status === 'processing' || status === 'pending';
+        
+        return (
+          <Space>
+            <Tag 
+              color={
+                status === 'completed' ? 'success' : 
+                status === 'failed' ? 'error' : 'processing'
+              }
+              icon={
+                status === 'completed' ? <CheckCircleOutlined /> :
+                status === 'failed' ? <CloseCircleOutlined /> : <ClockCircleOutlined />
+              }
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Tag>
+            {isProcessing && (
+              <Button 
+                type="text" 
+                size="small" 
+                icon={<ReloadOutlined />} 
+                onClick={() => checkEmbeddingStatus(record.id)}
+                loading={refreshingStatusId === record.id}
+              />
+            )}
+          </Space>
+        );
+      },
+    },
+    {
       title: 'Actions',
       key: 'actions',
+      width: 150,
       render: (_, record) => (
         <Space size="middle">
           <Button 

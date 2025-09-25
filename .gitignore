@@ -20,3 +20,4 @@ backend/tests/__pycache__/
 backend/uploads
 node_modules
 backend/test/__pycache__
+backend/tasks/__pycache__

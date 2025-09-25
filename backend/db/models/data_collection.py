@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, Text
+from sqlalchemy import Column, Integer, String, DateTime, func, Text, Boolean, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from db.base import Base
 
 class DataCollection(Base):
@@ -10,8 +11,10 @@ class DataCollection(Base):
     file_type = Column(String, nullable=False)  # 'csv' or 'xlsx'
     columns = Column(Text)  # Store column names as JSON string
     row_count = Column(Integer)
+    embeddings_status = Column(String, default='pending')  # pending, processing, completed, failed
+    embeddings_metadata = Column(JSONB, default=dict)  # Store any metadata about embeddings
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
     
     def to_dict(self):
         return {

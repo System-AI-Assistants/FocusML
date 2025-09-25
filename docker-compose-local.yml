@@ -131,12 +131,13 @@ services:
       - mlops_network
     restart: unless-stopped
     volumes:
-     - data:/home/postgres/pgdata/data
+      - data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
 
   vectorizer-worker:
    image: timescale/pgai-vectorizer-worker:latest
    environment:
-      PGAI_VECTORIZER_WORKER_DB_URL: postgres://postgres:postgres@localhost:5433/postgres
+      PGAI_VECTORIZER_WORKER_DB_URL: postgres://postgres:password@timescaledb:5433/postgres
       OLLAMA_HOST: http://host.docker.internal:11434
    networks:
       - mlops_network
