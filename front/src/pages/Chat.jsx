@@ -71,10 +71,7 @@ function Chat() {
         const data = await getDataCollections(keycloak);
         if (!cancelled) {
           setCollections(data);
-          // Auto-select the first collection if none selected
-          if (data.length > 0 && !selectedCollection) {
-            setSelectedCollection(data[0].id);
-          }
+          // Don't auto-select any collection by default
         }
       } catch (err) {
         console.error('Failed to load collections:', err);
@@ -88,12 +85,14 @@ function Chat() {
     
     // reset transcript when switching assistants
     transcriptRef.current = [];
+    // Reset selected collection when assistant changes
+    setSelectedCollection(null);
     return () => { cancelled = true; };
-  }, [assistantId, initialized, keycloak, selectedCollection]);
+  }, [assistantId, initialized, keycloak]);
 
   // Handle sending messages with RAG when a collection is selected
   const handleSendMessage = async (message) => {
-    if (!message.trim()) return;
+    if (!message.trim() || isSending) return;
     
     if (!assistant) {
       antdMessage.error('Please wait for the assistant to load');
@@ -109,6 +108,8 @@ function Chat() {
     // Add user message to transcript
     const updatedTranscript = [...transcriptRef.current, userMessage];
     transcriptRef.current = updatedTranscript;
+    setInput('');
+    setIsSending(true);
     
     try {
       let response;
@@ -135,11 +136,48 @@ function Chat() {
         timestamp: new Date().toISOString(),
       }];
       
+      // Force re-render to show the new messages
+      setInput('');
+      
     } catch (error) {
       console.error('Error sending message:', error);
       antdMessage.error(error.message || 'Failed to send message');
+    } finally {
+      setIsSending(false);
     }
   };
+
+  // State for loading indicator
+  const [isSending, setIsSending] = useState(false);
+  
+  // Filter out collections that don't have completed embeddings
+  const availableCollections = useMemo(() => 
+    collections.filter(c => c.embeddings_status === 'completed'),
+    [collections]
+  );
+  
+  // Add loading animation style
+  const loadingDotsStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+  };
+  
+  const dotStyle = {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    backgroundColor: '#666',
+    display: 'inline-block',
+    animation: 'bounce 1.4s infinite ease-in-out both',
+  };
+  
+  const keyframes = `
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+  `;
 
   // Dynamic roles: show model icon for AI if available
   const roles = useMemo(() => ({
@@ -153,23 +191,62 @@ function Chat() {
               border: '1px solid #d9d9d9',
               padding: 8,
               objectFit: 'contain',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
             },
             title: `${assistant.name} (${assistant.model})`
           }
         : { 
             icon: <RobotOutlined />, 
-            style: { background: '#1890ff', color: '#fff' },
+            style: { 
+              background: '#1890ff', 
+              color: '#fff',
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16
+            },
             title: assistant?.model || 'AI Assistant'
           },
       typing: { step: 5, interval: 20 },
-      style: { maxWidth: 600 },
+      style: { 
+        maxWidth: '80%',
+        minWidth: 120,
+        margin: '8px 0',
+        borderRadius: '18px',
+        padding: '12px 16px',
+        background: '#f5f5f5',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+      },
     },
     local: {
       placement: 'end',
       avatar: { 
         icon: <UserOutlined />, 
-        style: { background: '#52c41a', color: '#fff' },
+        style: { 
+          background: '#52c41a', 
+          color: '#fff',
+          width: 36,
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 16
+        },
         title: 'You'
+      },
+      style: {
+        maxWidth: '80%',
+        minWidth: 120,
+        margin: '8px 0',
+        borderRadius: '18px',
+        padding: '12px 16px',
+        background: '#1890ff',
+        color: 'white',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
       },
     },
   }), [assistant?.model_icon, assistant?.name, assistant?.model]);
@@ -226,8 +303,8 @@ function Chat() {
   return (
     <div className="chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <div className="chat-header" style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', background: '#fff' }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <Space>
               {assistant.model_icon ? (
                 <img 
@@ -251,50 +328,42 @@ function Chat() {
                 </div>
               </Typography.Title>
             </Space>
+            
             <Space>
-              <Select
-                placeholder="Select data collection"
-                style={{ width: 250 }}
-                loading={collectionsLoading}
-                value={selectedCollection}
-                onChange={setSelectedCollection}
-                options={collections.map(c => ({
-                  value: c.id,
-                  label: (
-                    <Space>
-                      <DatabaseOutlined />
-                      {c.name}
-                      {c.embeddings_status === 'completed' && (
-                        <Tag color="green" icon={<InfoCircleOutlined />}>
-                          RAG Ready
-                        </Tag>
-                      )}
-                    </Space>
-                  ),
-                }))}
-                allowClear
-                onClear={() => setSelectedCollection(null)}
-              />
-              {selectedCollection && (
-                <Tooltip title="Chat with selected data collection">
-                  <Tag color="blue" icon={<DatabaseOutlined />}>
-                    Using: {collections.find(c => c.id === selectedCollection)?.name}
-                  </Tag>
-                </Tooltip>
-              )}
+              <Tooltip title={availableCollections.length > 0 ? "Add data collection to enhance chat" : "No data collections available"}>
+                <Select
+                  placeholder={availableCollections.length > 0 ? "Add data collection..." : "No collections available"}
+                  style={{ width: 250 }}
+                  loading={collectionsLoading}
+                  value={selectedCollection || undefined}
+                  onChange={(value) => setSelectedCollection(value || null)}
+                  options={availableCollections.map(c => ({
+                    value: c.id,
+                    label: c.name
+                  }))}
+                  allowClear={!!selectedCollection}
+                  onClear={() => setSelectedCollection(null)}
+                  disabled={availableCollections.length === 0}
+                />
+              </Tooltip>
             </Space>
           </div>
-          
-          {selectedCollection && (
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <InfoCircleOutlined /> Chat is enhanced with data from the selected collection
-            </div>
-          )}
-        </Space>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)' }}>
-        <div style={{ flex: 1, overflow: 'auto', padding: '16px', background: '#fafafa' }}>
+        <div 
+          id="chat-messages"
+          style={{ 
+            flex: 1, 
+            overflowY: 'auto', 
+            padding: '16px', 
+            background: '#fafafa',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}
+        >
           {transcriptRef.current.length === 0 ? (
             <div style={{
               height: '100%',
@@ -306,83 +375,184 @@ function Chat() {
               padding: '40px 20px',
               color: '#666'
             }}>
-              {selectedCollection ? (
-                <>
-                  <DatabaseOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
-                  <Typography.Title level={4} style={{ marginBottom: 8 }}>
-                    Chat with {assistant.name}
-                  </Typography.Title>
-                  <Typography.Text type="secondary">
-                    Ask questions about the data in <strong>{collections.find(c => c.id === selectedCollection)?.name}</strong>
-                  </Typography.Text>
-                  <div style={{ marginTop: 16 }}>
-                    <Tag color="blue" icon={<InfoCircleOutlined />}>
-                      Using {assistant.model}
-                    </Tag>
-                    {selectedCollection && (
-                      <Tag color="green" icon={<DatabaseOutlined />}>
-                        {collections.find(c => c.id === selectedCollection)?.name}
-                      </Tag>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <RobotOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
-                  <Typography.Title level={4} style={{ marginBottom: 8 }}>
-                    Chat with {assistant.name}
-                  </Typography.Title>
-                  <Typography.Text type="secondary">
-                    Ask me anything or select a data collection to chat about specific data
-                  </Typography.Text>
-                  <div style={{ marginTop: 16 }}>
-                    <Tag color="blue" icon={<InfoCircleOutlined />}>
-                      Using {assistant.model}
-                    </Tag>
-                  </div>
-                </>
+              <RobotOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
+              <Typography.Title level={4} style={{ marginBottom: 8 }}>
+                Chat with {assistant.name}
+              </Typography.Title>
+              <Typography.Text type="secondary">
+                {selectedCollection 
+                  ? `Ask questions about the data in ${collections.find(c => c.id === selectedCollection)?.name}`
+                  : 'Ask me anything or add a data collection to enhance the chat'
+                }
+              </Typography.Text>
+              {!selectedCollection && availableCollections.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <Button 
+                    type="primary" 
+                    icon={<DatabaseOutlined />}
+                    onClick={() => document.querySelector('.ant-select-selection-search-input')?.focus()}
+                  >
+                    Add Data Collection
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
-            <Bubble
-              messages={transcriptRef.current}
-              roles={roles}
-              onSend={handleSendMessage}
-              input={input}
-              onInputChange={setInput}
-              loading={assistantLoading}
-              style={{ height: '100%' }}
-            />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {transcriptRef.current.map((msg, index) => (
+                <div 
+                  key={index} 
+                  style={{
+                    display: 'flex',
+                    flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    marginBottom: '8px'
+                  }}
+                >
+                  <div style={roles[msg.role === 'assistant' ? 'ai' : 'local'].avatar.style}>
+                    {msg.role === 'assistant' ? (
+                      assistant?.model_icon ? (
+                        <img 
+                          src={assistant.model_icon} 
+                          alt={assistant.name}
+                          style={{ width: '100%', height: '100%', borderRadius: '50%' }}
+                        />
+                      ) : (
+                        <RobotOutlined />
+                      )
+                    ) : (
+                      <UserOutlined />
+                    )}
+                  </div>
+                  <div 
+                    style={{
+                      ...roles[msg.role === 'assistant' ? 'ai' : 'local'].style,
+                      maxWidth: '80%',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.5
+                    }}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {isSending && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px',
+                  marginTop: '8px'
+                }}>
+                  <div style={roles.ai.avatar.style}>
+                    {assistant?.model_icon ? (
+                      <img 
+                        src={assistant.model_icon} 
+                        alt={assistant.name}
+                        style={{ width: '100%', height: '100%', borderRadius: '50%' }}
+                      />
+                    ) : (
+                      <RobotOutlined />
+                    )}
+                  </div>
+                  <>
+                    <style>{keyframes}</style>
+                    <div style={{
+                      ...roles.ai.style,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: '#666',
+                      padding: '12px 16px'
+                    }}>
+                      <div style={loadingDotsStyle}>
+                        <span style={{ ...dotStyle, animationDelay: '-0.32s' }}></span>
+                        <span style={{ ...dotStyle, animationDelay: '-0.16s' }}></span>
+                        <span style={dotStyle}></span>
+                      </div>
+                      <span>Thinking</span>
+                    </div>
+                  </>
+                </div>
+              )}
+            </div>
           )}
         </div>
-        <div style={{ padding: '16px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
-          <Input.TextArea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onPressEnter={(e) => {
-              if (!e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage(input);
+        <div style={{ 
+          padding: '16px', 
+          borderTop: '1px solid #f0f0f0', 
+          background: '#fff',
+          position: 'sticky',
+          bottom: 0,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'flex-end',
+            gap: '8px',
+            maxWidth: '1000px',
+            margin: '0 auto',
+            width: '100%'
+          }}>
+            <Input.TextArea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onPressEnter={(e) => {
+                if (!e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  if (input.trim()) {
+                    handleSendMessage(input);
+                  }
+                }
+              }}
+              placeholder={
+                selectedCollection 
+                  ? `Ask about the data in ${collections.find(c => c.id === selectedCollection)?.name}...` 
+                  : `Message ${assistant.name}... (or add a data collection above)`
               }
-            }}
-            placeholder={
-              selectedCollection 
-                ? `Ask about the data in ${collections.find(c => c.id === selectedCollection)?.name}...` 
-                : `Message ${assistant.name}...`
-            }
-            autoSize={{ minRows: 1, maxRows: 4 }}
-            style={{ width: '100%' }}
-            disabled={assistantLoading}
-            suffix={
-              <Button 
-                type="primary" 
-                icon={<SendOutlined />} 
-                onClick={() => handleSendMessage(input)}
-                loading={assistantLoading}
-                style={{ marginLeft: 8 }}
-              />
-            }
-          />
+              autoSize={{ minRows: 1, maxRows: 6 }}
+              style={{ 
+                flex: 1,
+                borderRadius: '20px',
+                padding: '12px 16px',
+                resize: 'none',
+                border: '1px solid #d9d9d9',
+                boxShadow: 'none',
+                fontSize: '15px',
+                lineHeight: 1.5
+              }}
+              disabled={isSending || assistantLoading}
+            />
+            <Button 
+              type="primary" 
+              shape="circle" 
+              icon={<SendOutlined />} 
+              onClick={() => input.trim() && handleSendMessage(input)}
+              loading={isSending}
+              disabled={!input.trim() || isSending || assistantLoading}
+              style={{ 
+                width: '40px', 
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            />
+          </div>
+          <div style={{ 
+            textAlign: 'center', 
+            marginTop: '8px',
+            fontSize: '12px',
+            color: '#999'
+          }}>
+            {selectedCollection && (
+              <span>
+                <DatabaseOutlined /> Chatting with <strong>{collections.find(c => c.id === selectedCollection)?.name}</strong>
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
