@@ -181,26 +181,58 @@ export const sendChatMessage = async (keycloak, assistantId, messages) => {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/chat/`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${keycloak.token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      messages,
+  try {
+    // Ensure messages is an array and each message has the required fields
+    const formattedMessages = Array.isArray(messages) 
+      ? messages.map(msg => ({
+          role: msg.role || 'user',
+          content: msg.content || ''
+        }))
+      : [];
+
+    const requestBody = {
+      messages: formattedMessages,
       max_tokens: 512,
       temperature: 0.7,
       top_p: 0.9
-    }),
-  });
+    };
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to send chat message');
+    console.log('Sending chat request:', {
+      url: `${API_BASE_URL}/assistants/${assistantId}/chat/`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${keycloak.token ? keycloak.token.substring(0, 10) + '...' : 'none'}`,
+      },
+      body: requestBody
+    });
+
+    const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/chat/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${keycloak.token}`,
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.error('Chat request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: error.detail || 'Unknown error'
+      });
+      throw new Error(error.detail || 'Failed to send chat message');
+    }
+
+    const responseData = await response.json();
+    console.log('Chat response:', responseData);
+    return responseData;
+  } catch (error) {
+    console.error('Error in sendChatMessage:', error);
+    throw error;
   }
-
-  return await response.json();
 };
 
 export async function fetchAssistant(keycloak, assistantId) {
@@ -296,6 +328,77 @@ export const createBenchmarkRun = async (keycloak, payload) => {
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+};
+
+// Data Collections API
+export const fetchDataCollections = async (keycloak) => {
+  const response = await fetch(`${API_BASE_URL}/data-collections/collections/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch data collections');
+  }
+  
+  return await response.json();
+};
+
+// RAG Query API
+export const queryWithRAG = async (keycloak, collectionId, query, assistantId, topK = 3, model = 'mistral:7b') => {
+  const url = `${API_BASE_URL}/data-collections/collections/${collectionId}/query`;
+  
+  // Prepare request body
+  const requestBody = {
+    query: String(query || ''),
+    top_k: Number(topK) || 3,
+    model: String(model || 'mistral:7b'),
+    ...(assistantId && { assistant_id: String(assistantId) })
+  };
+
+  // Prepare headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${keycloak.token}`
+  };
+
+  try {
+    console.log('Sending RAG request to:', url);
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody)
+    });
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(responseData.detail || 'Failed to query with RAG');
+    }
+
+    // Process response
+    const sources = Array.isArray(responseData.sources) 
+      ? responseData.sources.map(s => ({
+          content: s.content || '',
+          distance: s.distance || 0,
+          metadata: s.metadata || {}
+        }))
+      : [];
+
+    return {
+      response: responseData.response || 'No response from the assistant',
+      sources: sources
+    };
+  } catch (error) {
+    console.error('Error in queryWithRAG:', error);
+    throw error;
+  }
 };
 
 // Add this to your api.js file
