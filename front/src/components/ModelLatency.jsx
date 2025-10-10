@@ -26,11 +26,11 @@ const ModelLatencyChart = ({
   legendWidth = 260
 }) => {
   const defaultData = [
-    { model: 'GPT-4', p50: 120, p95: 280, p99: 450, average: 145 },
-    { model: 'Claude-3', p50: 95, p95: 220, p99: 380, average: 118 },
-    { model: 'Gemini Pro', p50: 110, p95: 260, p99: 420, average: 135 },
-    { model: 'Llama-2', p50: 85, p95: 190, p99: 310, average: 102 },
-    { model: 'Mistral-7B', p50: 75, p95: 170, p99: 285, average: 92 }
+    { model: 'Qwen3', p50: 224, p95: 327, p99: 474, average: 169 },
+    { model: 'Phi3', p50: 95, p95: 220, p99: 380, average: 118 },
+    { model: 'Mistral-7B', p50: 115, p95: 254, p99: 399, average: 145 },
+    { model: 'Llama-3.1', p50: 79, p95: 182, p99: 330, average: 102 },
+    { model: 'Llama-3.2', p50: 75, p95: 120, p99: 265, average: 72 }
   ];
   const chartData = data || defaultData;
 

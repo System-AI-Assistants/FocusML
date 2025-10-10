@@ -122,26 +122,26 @@ function Dashboard() {
 
   const recentActivity = [
     {
-      title: 'Model training completed',
-      time: '2 hours ago',
+      title: 'New assistant created',
+      time: '3 minutes ago',
       status: 'success',
       icon: <CheckCircleOutlined className="status-active"/>
     },
     {
-      title: 'New experiment created',
-      time: '4 hours ago',
-      status: 'info',
-      icon: <ExperimentOutlined className="status-info"/>
+      title: 'New assistant created',
+      time: '20 hours ago',
+      status: 'success',
+      icon: <CheckCircleOutlined className="status-active"/>
     },
     {
       title: 'Alert: High CPU usage',
-      time: '6 hours ago',
+      time: '2 days ago',
       status: 'warning',
       icon: <AlertOutlined className="status-warning"/>
     },
     {
       title: 'Model deployed to production',
-      time: '1 day ago',
+      time: '6 day ago',
       status: 'success',
       icon: <CloudServerOutlined className="status-active"/>
     },
@@ -327,7 +327,7 @@ function Dashboard() {
         </Col>
 
         <Col xs={24} lg={14}>
-          <Card className="modern-card" title={<span className="card-title">Model Latency Metrics</span>}>
+          <Card className="modern-card" title={<span className="card-title">Model Latency</span>}>
             <ModelLatencyChart height={350}/>
           </Card>
         </Col>

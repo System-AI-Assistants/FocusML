@@ -324,7 +324,6 @@ def stop_assistant(assistant_id: int):
 def chat_with_assistant(assistant_id: int, request: ChatRequest):
     """Chat with an assistant using its MLflow-logged model."""
     try:
-        print({assistant_id},"- chat")
         with SessionLocal() as session:
             assistant = session.query(Assistant).filter_by(id=assistant_id).first()
             if not assistant:
@@ -335,58 +334,62 @@ def chat_with_assistant(assistant_id: int, request: ChatRequest):
             
             if assistant.status == 'failed':
                 raise HTTPException(status_code=500, detail="Assistant initialization failed")
-                
 
             if not assistant.mlflow_run_id:
                 raise HTTPException(status_code=400, detail="Assistant has no associated MLflow model")
 
             try:
-                model = mlflow.pyfunc.load_model(f"runs:/{assistant.mlflow_run_id}/model")
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to load MLflow model: {str(e)}")
+                # Start a new MLflow run for tracking this chat
+                with mlflow.start_run(run_name=f"chat-{assistant_id}-{int(time.time())}") as run:
+                    # Load the model
+                    model = mlflow.pyfunc.load_model(f"runs:/{assistant.mlflow_run_id}/model")
 
-            # Convert messages to MLflow format
-            messages = [{"role": m.role, "content": m.content} for m in request.messages]
-
-            params = {
-                "max_tokens": request.max_tokens,
-                "temperature": request.temperature,
-                "top_p": request.top_p,
-                "stop": request.stop,  # ensure list[str] or None
-                "custom_inputs": request.custom_inputs,
-            }
-
-            # ❌ was: model.predict(messages, params)
-            # ✅ MLflow ChatModel expects data={"messages": [...]}
-            # Call model
-            out = model.predict({"messages": messages}, params)
-
-            # Normalize result to a dict shape your API expects
-            if isinstance(out, dict):
-                model_name = out.get("model") or assistant.model
-                choices_in = out.get("choices", [])
-                choices = []
-                for i, ch in enumerate(choices_in):
-                    msg = ch.get("message") or {}
-                    choices.append({
-                        "index": ch.get("index", i),
-                        "message": {
-                            "role": msg.get("role", "assistant"),
-                            "content": msg.get("content", "")
-                        }
+                    # Log input parameters
+                    mlflow.log_params({
+                        "assistant_id": assistant_id,
+                        "model": assistant.model,
+                        "temperature": request.temperature,
+                        "max_tokens": request.max_tokens
                     })
-            else:
-                # Fallback if your model returns a ChatCompletionResponse object
-                model_name = getattr(out, "model", assistant.model)
-                choices = [{
-                    "index": c.index,
-                    "message": {
-                        "role": c.message.role,
-                        "content": c.message.content
-                    }
-                } for c in getattr(out, "choices", [])]
 
-            return ChatResponse(choices=choices, model=model_name)
+                    # Log input messages
+                    messages = [{"role": m.role, "content": m.content} for m in request.messages]
+                    mlflow.log_param("input_messages", str(messages))
+
+                    # Prepare parameters
+                    params = {
+                        "max_tokens": request.max_tokens,
+                        "temperature": request.temperature,
+                        "top_p": request.top_p,
+                        "stop": request.stop,
+                        "custom_inputs": request.custom_inputs,
+                    }
+
+                    # Call model and log metrics
+                    start_time = time.time()
+                    out = model.predict({"messages": messages}, params)
+                    duration = time.time() - start_time
+
+                    mlflow.log_metric("inference_duration_seconds", duration)
+
+                    # Process and log output
+                    if isinstance(out, dict):
+                        model_name = out.get("model") or assistant.model
+                        choices = out.get("choices", [])
+                        response_content = choices[0].get("message", {}).get("content", "") if choices else ""
+                    else:
+                        model_name = getattr(out, "model", assistant.model)
+                        response_content = out.choices[0].message.content if hasattr(out, 'choices') and out.choices else ""
+
+                    mlflow.log_param("response_content", response_content)
+                    mlflow.log_metric("response_length", len(response_content))
+
+                    # Return the response
+                    return ChatResponse(choices=choices, model=model_name)
+
+            except Exception as e:
+                mlflow.log_param("error", str(e))
+                raise HTTPException(status_code=500, detail=f"Failed to process chat: {str(e)}")
 
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process chat: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

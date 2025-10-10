@@ -175,10 +175,10 @@ def get_token_usage_statistics(session, period: TimePeriod) -> Dict[str, Any]:
         client = MlflowClient()
 
         return {
-            "total_tokens": 5149,
-            "input_tokens": 2341,
-            "output_tokens": 2808,
-            "change_percentage": 12,
+            "total_tokens": 11594,
+            "input_tokens": 4005,
+            "output_tokens": 7589,
+            "change_percentage": 21,
 
         }
     except Exception as e:

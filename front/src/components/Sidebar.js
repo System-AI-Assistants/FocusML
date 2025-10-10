@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Layout, Menu, Typography, Button, Drawer, Grid } from 'antd';
 import './Sidebar.css';
 import { Link, useLocation } from 'react-router-dom';
+import { Divider } from 'antd';
 import {
   HomeOutlined,
   ExperimentOutlined,
@@ -12,7 +13,8 @@ import {
   CodeSandboxOutlined,
   MenuOutlined,
   DotChartOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  LockOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -52,14 +54,15 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         <Menu.Item key="/benchmarking" icon={<DotChartOutlined />}>
           <Link to="/benchmarking">Benchmarking</Link>
         </Menu.Item>
-        <Menu.Item key="/monitoring" icon={<BarChartOutlined />}>
-          <Link to="/monitoring">Monitoring</Link>
-        </Menu.Item>
-        <Menu.Item key="/alerts" icon={<BellOutlined />}>
-          <Link to="/alerts">Alerts</Link>
-        </Menu.Item>
         <Menu.Item key="/users" icon={<UserOutlined />}>
           <Link to="/users">User Management</Link>
+        </Menu.Item>
+        <Divider key="divider" />
+        {/*<Menu.Item key="http://localhost:5000/" icon={<ExperimentOutlined />}>*/}
+        {/*  <a href="http://localhost:5000/" target="_blank" rel="noopener noreferrer">MLflow</a>*/}
+        {/*</Menu.Item>*/}
+        <Menu.Item key="http://localhost:8080/" icon={<LockOutlined />}>
+          <a href="http://localhost:8080/" target="_blank" rel="noopener noreferrer">Keycloak</a>
         </Menu.Item>
       </Menu>
       
@@ -70,12 +73,9 @@ const Sidebar = ({ collapsed, onCollapse }) => {
   if (isMobile) {
     const navItems = [
       { key: '/', icon: <HomeOutlined />, label: 'Home' },
-      { key: '/experiments', icon: <ExperimentOutlined />, label: 'Experiments' },
       { key: '/assistants', icon: <AppstoreOutlined />, label: 'Assistants' },
-      { key: '/benchmarking', icon: <ExperimentOutlined />, label: 'Bench' },
-      { key: '/monitoring', icon: <BarChartOutlined />, label: 'Monitor' },
-      { key: '/alerts', icon: <BellOutlined />, label: 'Alerts' },
-      { key: '/users', icon: <UserOutlined />, label: 'Users' }
+      { key: '/benchmarking', icon: <DotChartOutlined />, label: 'Bench' },
+      { key: '/users', icon: <UserOutlined />, label: 'Users' },
     ];
 
     return (

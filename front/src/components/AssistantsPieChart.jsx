@@ -18,12 +18,12 @@ const AssistantsPieChart = ({
   legendWidth = 200
 }) => {
   const defaultData = [
-    { name: 'Coding Assistant', value: 35, requests: 2450 },
-    { name: 'Data Analyst', value: 22, requests: 1540 },
-    { name: 'Content Writer', value: 18, requests: 1260 },
-    { name: 'Math Solver', value: 12, requests: 840 },
-    { name: 'Research Assistant', value: 8, requests: 560 },
-    { name: 'Design Helper', value: 5, requests: 350 }
+    { name: 'Mistral Test', value: 35, requests: 2450 },
+    { name: 'Mistral2', value: 22, requests: 1540 },
+    { name: 'LLama3.1', value: 18, requests: 1260 },
+    { name: 'TinyLlama', value: 12, requests: 840 },
+    { name: 'Mistral2', value: 8, requests: 560 },
+    { name: 'llamacpu', value: 5, requests: 350 }
   ];
   const chartData = data || defaultData;
 

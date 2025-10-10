@@ -3,13 +3,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const RequestsChart = ({ data, type = 'line', height = 300 }) => {
   const defaultData = [
-    { time: '01:00', requests: 45 },
-    { time: '04:00', requests: 23 },
-    { time: '08:00', requests: 89 },
-    { time: '12:00', requests: 167 },
-    { time: '16:00', requests: 234 },
-    { time: '20:00', requests: 145 },
-    { time: '24:00', requests: 67 }
+    { time: '01:00', requests: 55 },
+    { time: '04:00', requests: 65 },
+    { time: '08:00', requests: 94 },
+    { time: '12:00', requests: 101 },
+    { time: '16:00', requests: 105 },
+    { time: '20:00', requests: 112 },
+    { time: '24:00', requests: 115 }
   ];
 
   const chartData = data || defaultData;

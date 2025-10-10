@@ -3,13 +3,13 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaCh
 
 const StackedAreaChart = ({ data, height = 300 }) => {
   const defaultData = [
-    { time: '01:00', successful: 42, failed: 3 },
-    { time: '04:00', successful: 20, failed: 3 },
-    { time: '08:00', successful: 82, failed: 7 },
-    { time: '12:00', successful: 155, failed: 12 },
-    { time: '16:00', successful: 218, failed: 16 },
-    { time: '20:00', successful: 132, failed: 13 },
-    { time: '24:00', successful: 61, failed: 6 }
+    { time: '01:00', successful: 10, failed: 1 },
+    { time: '04:00', successful: 8, failed: 0 },
+    { time: '08:00', successful: 12, failed: 0 },
+    { time: '12:00', successful: 14, failed: 2 },
+    { time: '16:00', successful: 22, failed: 3 },
+    { time: '20:00', successful: 34, failed: 1 },
+    { time: '24:00', successful: 55, failed: 0 }
   ];
 
   const chartData = data || defaultData;

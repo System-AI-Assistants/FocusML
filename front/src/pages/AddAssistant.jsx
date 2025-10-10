@@ -348,16 +348,23 @@ const AddModel = () => {
           >
             <Row gutter={16}>
               {executionTypeOptions.map(({ key, title, description }) => (
+
                 <Col span={12} key={key}>
                   <Card
                     hoverable
+
                     onClick={() => onSelectExecutionType(key)}
                     style={{
                       cursor: 'pointer',
                       borderColor: selectedExecutionType === key ? '#1890ff' : '#d9d9d9',
                       borderWidth: selectedExecutionType === key ? 2 : 1,
                       padding: 8,
+                      opacity: key === 'cloud' ? 0.6 : 1,
+                      backgroundColor: key === 'cloud' ? '#f5f5f5' : 'transparent',
+                      cursor: key === 'cloud' ? 'not-allowed' : 'pointer',
+
                     }}
+
                   >
                     <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                       <Radio
