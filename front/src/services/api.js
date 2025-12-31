@@ -431,3 +431,169 @@ export const getEmbeddingModels = async (keycloak) => {
     return [];
   }
 };
+
+// Integration API functions
+export const createAPIKey = async (keycloak, apiKeyData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/integrations/api-keys/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+    body: JSON.stringify(apiKeyData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create API key');
+  }
+  return await response.json();
+};
+
+export const listAPIKeys = async (keycloak, assistantId = null) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const url = assistantId 
+    ? `${API_BASE_URL}/integrations/api-keys/?assistant_id=${assistantId}`
+    : `${API_BASE_URL}/integrations/api-keys/`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch API keys');
+  }
+  return await response.json();
+};
+
+export const revokeAPIKey = async (keycloak, keyId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/integrations/api-keys/${keyId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to revoke API key');
+  }
+  return await response.json();
+};
+
+export const toggleAPIKey = async (keycloak, keyId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/integrations/api-keys/${keyId}/toggle/`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to toggle API key');
+  }
+  return await response.json();
+};
+
+export const getAPIKeyStatistics = async (keycloak, keyId, startDate = null, endDate = null) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate.toISOString());
+  if (endDate) params.append('end_date', endDate.toISOString());
+  const url = `${API_BASE_URL}/integrations/api-keys/${keyId}/statistics/?${params.toString()}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch statistics');
+  }
+  return await response.json();
+};
+
+export const getAssistantStatistics = async (keycloak, assistantId, startDate = null, endDate = null) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate.toISOString());
+  if (endDate) params.append('end_date', endDate.toISOString());
+  const url = `${API_BASE_URL}/integrations/assistants/${assistantId}/statistics/?${params.toString()}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch statistics');
+  }
+  return await response.json();
+};
+
+export const addWhitelistEntry = async (keycloak, keyId, entry) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/integrations/api-keys/${keyId}/whitelist/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+    body: JSON.stringify(entry),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to add whitelist entry');
+  }
+  return await response.json();
+};
+
+export const listWhitelistEntries = async (keycloak, keyId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/integrations/api-keys/${keyId}/whitelist/`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch whitelist entries');
+  }
+  return await response.json();
+};
+
+export const removeWhitelistEntry = async (keycloak, keyId, entryId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/integrations/api-keys/${keyId}/whitelist/${entryId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to remove whitelist entry');
+  }
+  return await response.json();
+};

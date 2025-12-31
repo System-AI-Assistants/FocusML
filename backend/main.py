@@ -6,10 +6,12 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from api.middleware_api_key import APIKeyMiddleware
 
 from api import routes_users, routes_assistants, routes_models, routes_benchmarks, routes_statistics
 from api.routes_data_collections import router as data_collections_router
 from api.routes_chat import router as chat_router
+from api.routes_integrations import router as integrations_router
 from core.config import settings
 
 
@@ -46,6 +48,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add API key middleware (after CORS so it can set headers)
+app.add_middleware(APIKeyMiddleware)
+
 app.include_router(routes_users.router)
 app.include_router(routes_assistants.router)
 app.include_router(routes_models.router)
@@ -53,6 +58,7 @@ app.include_router(chat_router, prefix="/chat", tags=["chat"])
 app.include_router(data_collections_router, prefix="/data-collections", tags=["Data Collections"])
 app.include_router(routes_benchmarks.router)
 app.include_router(routes_statistics.router)
+app.include_router(integrations_router)
 
 
 @app.get("/")

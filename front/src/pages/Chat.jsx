@@ -123,10 +123,7 @@ function Chat() {
         });
       } else {
         // Fallback to regular chat with the assistant's model
-        response = await sendChatMessage(keycloak, assistantId, {
-          ...assistant,
-          messages: updatedTranscript
-        });
+        response = await sendChatMessage(keycloak, assistantId, updatedTranscript);
       }
       
       // Add assistant's response to transcript

@@ -51,6 +51,9 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         <Menu.Item key="/assistants" icon={<AppstoreOutlined />}>
           <Link to="/assistants">Assistants</Link>
         </Menu.Item>
+        <Menu.Item key="/integration" icon={<CodeSandboxOutlined />}>
+          <Link to="/integration">Integrations</Link>
+        </Menu.Item>
         <Menu.Item key="/benchmarking" icon={<DotChartOutlined />}>
           <Link to="/benchmarking">Benchmarking</Link>
         </Menu.Item>
@@ -75,6 +78,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       { key: '/', icon: <HomeOutlined />, label: 'Home' },
       { key: '/assistants', icon: <AppstoreOutlined />, label: 'Assistants' },
       { key: '/benchmarking', icon: <DotChartOutlined />, label: 'Bench' },
+      { key: '/integration', icon: <CodeSandboxOutlined />, label: 'Integrations' },
       { key: '/users', icon: <UserOutlined />, label: 'Users' },
     ];
 

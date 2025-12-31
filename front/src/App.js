@@ -13,6 +13,7 @@ import Assistants from './pages/Assistants';
 import AddAssistant from './pages/AddAssistant'
 import Benchmarking from './pages/Benchmarking';
 import DataCollections from "./pages/DataCollections";
+import Integration from "./pages/Integration";
 
 const { Content } = Layout;
 
@@ -42,6 +43,7 @@ function App() {
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/add" element={<AddAssistant />} />
               <Route path="/benchmarking" element={<Benchmarking />} />
+              <Route path="/integration" element={<Integration />} />
               <Route path="/chat/:assistantId" element={<Chat />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

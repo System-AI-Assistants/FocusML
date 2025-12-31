@@ -1,4 +1,5 @@
 import os
+import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from mlflow.types.chat import ChatMessage
@@ -320,9 +321,12 @@ def stop_assistant(assistant_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to stop assistant: {str(e)}")
 
 
-@router.post("/{assistant_id}/chat/", response_model=ChatResponse, dependencies=[Depends(get_current_user)])
-def chat_with_assistant(assistant_id: int, request: ChatRequest):
-    """Chat with an assistant using its MLflow-logged model."""
+@router.post("/{assistant_id}/chat/", response_model=ChatResponse)
+async def chat_with_assistant(assistant_id: int, request: ChatRequest, current_user: dict = Depends(get_current_user)):
+    """Chat with an assistant using Ollama directly."""
+    import httpx
+    from core.config import settings
+    
     try:
         with SessionLocal() as session:
             assistant = session.query(Assistant).filter_by(id=assistant_id).first()
@@ -335,60 +339,55 @@ def chat_with_assistant(assistant_id: int, request: ChatRequest):
             if assistant.status == 'failed':
                 raise HTTPException(status_code=500, detail="Assistant initialization failed")
 
-            if not assistant.mlflow_run_id:
-                raise HTTPException(status_code=400, detail="Assistant has no associated MLflow model")
-
             try:
-                # Start a new MLflow run for tracking this chat
-                with mlflow.start_run(run_name=f"chat-{assistant_id}-{int(time.time())}") as run:
-                    # Load the model
-                    model = mlflow.pyfunc.load_model(f"runs:/{assistant.mlflow_run_id}/model")
+                # Prepare messages for Ollama
+                messages = [{"role": m.role, "content": m.content} for m in request.messages]
+                
+                # Call Ollama directly
+                url = f"{settings.OLLAMA_HOST.rstrip('/')}/api/chat"
+                
+                payload = {
+                    "model": assistant.model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {}
+                }
+                
+                # Add optional parameters
+                if request.temperature is not None:
+                    payload["options"]["temperature"] = request.temperature
+                if request.max_tokens is not None:
+                    payload["options"]["num_predict"] = request.max_tokens
+                if request.top_p is not None:
+                    payload["options"]["top_p"] = request.top_p
+                
+                start_time = time.time()
+                
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    response = await client.post(url, json=payload)
+                    response.raise_for_status()
+                    result = response.json()
+                
+                duration = time.time() - start_time
+                
+                # Extract the response content
+                response_content = result.get("message", {}).get("content", "")
+                
+                # Format the response
+                choices = [{
+                    "message": {
+                        "role": "assistant",
+                        "content": response_content
+                    },
+                    "index": 0,
+                    "finish_reason": "stop"
+                }]
+                
+                return ChatResponse(choices=choices, model=assistant.model)
 
-                    # Log input parameters
-                    mlflow.log_params({
-                        "assistant_id": assistant_id,
-                        "model": assistant.model,
-                        "temperature": request.temperature,
-                        "max_tokens": request.max_tokens
-                    })
-
-                    # Log input messages
-                    messages = [{"role": m.role, "content": m.content} for m in request.messages]
-                    mlflow.log_param("input_messages", str(messages))
-
-                    # Prepare parameters
-                    params = {
-                        "max_tokens": request.max_tokens,
-                        "temperature": request.temperature,
-                        "top_p": request.top_p,
-                        "stop": request.stop,
-                        "custom_inputs": request.custom_inputs,
-                    }
-
-                    # Call model and log metrics
-                    start_time = time.time()
-                    out = model.predict({"messages": messages}, params)
-                    duration = time.time() - start_time
-
-                    mlflow.log_metric("inference_duration_seconds", duration)
-
-                    # Process and log output
-                    if isinstance(out, dict):
-                        model_name = out.get("model") or assistant.model
-                        choices = out.get("choices", [])
-                        response_content = choices[0].get("message", {}).get("content", "") if choices else ""
-                    else:
-                        model_name = getattr(out, "model", assistant.model)
-                        response_content = out.choices[0].message.content if hasattr(out, 'choices') and out.choices else ""
-
-                    mlflow.log_param("response_content", response_content)
-                    mlflow.log_metric("response_length", len(response_content))
-
-                    # Return the response
-                    return ChatResponse(choices=choices, model=model_name)
-
+            except httpx.HTTPError as e:
+                raise HTTPException(status_code=500, detail=f"Failed to communicate with model: {str(e)}")
             except Exception as e:
-                mlflow.log_param("error", str(e))
                 raise HTTPException(status_code=500, detail=f"Failed to process chat: {str(e)}")
 
     except SQLAlchemyError as e:

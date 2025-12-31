@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func
+from sqlalchemy.orm import relationship
 
 from db.base import Base
 
@@ -18,4 +19,6 @@ class Assistant(Base):
     mlflow_run_id = Column(String(255))
     create_time = Column(DateTime, server_default=func.now())
     last_modified = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    api_keys = relationship("APIKey", back_populates="assistant", cascade="all, delete-orphan")
     
