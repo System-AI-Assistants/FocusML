@@ -491,6 +491,7 @@ const DataCollections = () => {
       title: 'Actions',
       key: 'actions',
       width: 150,
+      fixed: 'right',
       render: (_, record) => (
         <Space size="middle">
           <Button 
@@ -953,6 +954,7 @@ const DataCollections = () => {
           rowKey="id"
           loading={tableLoading}
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <div className="empty-table">
