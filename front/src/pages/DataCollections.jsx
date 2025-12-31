@@ -15,7 +15,8 @@ import {
   Menu,
   Progress,
   Row,
-  Col
+  Col,
+  Select
 } from 'antd';
 import { 
   // File Icons
@@ -47,6 +48,7 @@ import {
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKeycloak } from '@react-keycloak/web';
+import { getEmbeddingModels } from '../services/api';
 import './DataCollections.css';
 
 const { Title, Text } = Typography;
@@ -199,6 +201,8 @@ const DataCollections = () => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewData, setPreviewData] = useState({ columns: [], rows: [] });
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [embeddingModels, setEmbeddingModels] = useState([]);
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState(null);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const animationRef = useRef(null);
@@ -223,6 +227,7 @@ const DataCollections = () => {
   // Handle file removal
   const handleRemove = () => {
     setFile(null);
+    setSelectedEmbeddingModel(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -472,6 +477,17 @@ const DataCollections = () => {
       },
     },
     {
+      title: 'Embedding Model',
+      key: 'embedding_model',
+      width: 200,
+      render: (_, record) => {
+        const modelName = record.embedding_model_name || 
+                         (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
+                         'N/A';
+        return <Tag color="blue">{modelName}</Tag>;
+      },
+    },
+    {
       title: 'Actions',
       key: 'actions',
       width: 150,
@@ -582,6 +598,11 @@ const DataCollections = () => {
       return;
     }
 
+    if (!selectedEmbeddingModel) {
+      message.error('Please select an embedding model!');
+      return;
+    }
+
     setUploading(true);
     setIsAnimating(true);
 
@@ -598,11 +619,13 @@ const DataCollections = () => {
       );
       
       formData.append('file', fileToUpload, file.name);
+      formData.append('embedding_model_id', selectedEmbeddingModel.toString());
 
       console.log('Sending file:', {
         name: file.name,
         size: file.size,
         type: file.type,
+        embedding_model_id: selectedEmbeddingModel,
         isFile: fileToUpload instanceof File
       });
 
@@ -625,6 +648,7 @@ const DataCollections = () => {
       message.success('File uploaded successfully!');
       refreshCollections();
       setFile(null);
+      setSelectedEmbeddingModel(null);
     } catch (error) {
       console.error('Upload failed:', error);
       message.error(error.message || 'Upload failed. Please try again.');
@@ -716,7 +740,24 @@ const DataCollections = () => {
 
   useEffect(() => {
     refreshCollections();
-  }, []);
+    // Fetch embedding models
+    const fetchEmbeddingModels = async () => {
+      try {
+        const models = await getEmbeddingModels(keycloak);
+        setEmbeddingModels(models);
+        // Auto-select first model if available
+        if (models.length > 0 && !selectedEmbeddingModel) {
+          setSelectedEmbeddingModel(models[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch embedding models:', error);
+        message.error('Failed to load embedding models');
+      }
+    };
+    if (keycloak && keycloak.authenticated) {
+      fetchEmbeddingModels();
+    }
+  }, [keycloak]);
 
   return (
     <div className="data-collections-container">
@@ -816,18 +857,40 @@ const DataCollections = () => {
               )}
 
               {!uploading && (
-                <Button
-                  type="primary"
-                  size="large"
-                  className="upload-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUpload();
-                  }}
-                  icon={<CloudUploadOutlined />}
-                >
-                  Process File
-                </Button>
+                <div style={{ width: '100%', marginTop: 16 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong>Select Embedding Model:</Text>
+                  </div>
+                  <Select
+                    style={{ width: '100%', marginBottom: 16 }}
+                    placeholder="Choose an embedding model"
+                    value={selectedEmbeddingModel}
+                    onChange={setSelectedEmbeddingModel}
+                    size="large"
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                    options={embeddingModels.map(model => ({
+                      value: model.id,
+                      label: `${model.name}${model.family_name ? ` (${model.family_name})` : ''}`
+                    }))}
+                  />
+                  <Button
+                    type="primary"
+                    size="large"
+                    className="upload-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpload();
+                    }}
+                    icon={<CloudUploadOutlined />}
+                    disabled={!selectedEmbeddingModel}
+                    block
+                  >
+                    Process File
+                  </Button>
+                </div>
               )}
             </div>
           )}

@@ -12,6 +12,8 @@ class ModelFamily(Base):
     description = Column(Text)
     icon = Column(String(255))
     url = Column(String(255))
+    tags = Column(String(255))
+    provider = Column(String(255))
     installed = Column(Boolean)
     models = relationship("Model", back_populates="family")
     

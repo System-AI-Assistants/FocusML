@@ -403,3 +403,31 @@ export const getStatistics = async (keycloak, period = '7days') => {
     return null;
   }
 };
+
+export const getEmbeddingModels = async (keycloak) => {
+  if (!keycloak) {
+    console.error('getEmbeddingModels: Keycloak instance is undefined');
+    return [];
+  }
+  try {
+    if (!keycloak.authenticated) {
+      throw new Error('User is not authenticated');
+    }
+    const response = await fetch(`${API_BASE_URL}/models/embedding/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${keycloak.token}`,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching embedding models:', error);
+    return [];
+  }
+};

@@ -4,7 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-from tools.ollama_parser.get_models import parse_model_page
+from get_models import parse_model_page
+
 
 URL = 'https://ollama.com/search'
 OLLAMA_BASE = 'https://ollama.com/'
@@ -93,5 +94,5 @@ def parse_ollama():
 if __name__ == '__main__':
     results = parse_ollama()
 
-    with open('models.json', 'w', encoding='utf-8') as f:
+    with open('models2.json', 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)

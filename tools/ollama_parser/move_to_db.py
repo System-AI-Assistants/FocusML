@@ -12,10 +12,12 @@ class ModelFamily(Base):
     __tablename__ = 'model_families'
 
     id = Column(Integer, primary_key=True)
+    provider = Column(String(255))
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
     icon = Column(String(255))
     url = Column(String(255))
+    tags = Column(String(255))
     installed = Column(Boolean)
     models = relationship("Model", back_populates="family")
 
@@ -54,15 +56,17 @@ def insert_data(session, data):
     try:
         for family_data in data:
 
-            family = session.query(ModelFamily).filter_by(name=family_data['name']).first()
+            family = session.query(ModelFamily).filter_by(name=family_data['title']).first()
             if not family:
 
                 family = ModelFamily(
-                    name=family_data['name'],
+                    name=family_data['title'],
                     description=family_data['description'],
                     icon=family_data['icon'],
                     url=family_data['url'],
-                    installed=family_data['installed']
+                    installed=family_data['installed'],
+                    tags=",".join(family_data['tags']),
+                    provider='ollama'
                 )
                 session.add(family)
             else:
@@ -71,12 +75,16 @@ def insert_data(session, data):
                 family.icon = family_data['icon']
                 family.url = family_data['url']
                 family.installed = family_data['installed']
-
+                family.tags = ",".join(family_data['tags'])
+                family.provider = 'ollama'
             session.flush()
 
 
             for model_data in family_data['models']:
                 model = session.query(Model).filter_by(family_id=family.id, name=model_data['name']).first()
+                if 'cloud' in model_data['name']:
+                    continue
+
                 if not model:
 
                     model = Model(
@@ -84,7 +92,9 @@ def insert_data(session, data):
                         name=model_data['name'],
                         size=model_data['size'],
                         context=model_data['context'],
-                        input_type=model_data['input']
+                        input_type=model_data['input'],
+                       
+                   
                     )
                     session.add(model)
                 else:
@@ -92,7 +102,7 @@ def insert_data(session, data):
                     model.size = model_data['size']
                     model.context = model_data['context']
                     model.input_type = model_data['input']
-
+                    model.provider = 'ollama'
         session.commit()
     except SQLAlchemyError as e:
         print(f"Error inserting data: {e}")
@@ -100,7 +110,7 @@ def insert_data(session, data):
 
 def main():
 
-    db_url = 'postgresql://react:DcaErJGsvJdLvzRV3FYddcVfH5gDcnBcErJGasdcaS@localhost:5432/react_db'
+    db_url = 'postgresql://keycloak:keycloak@localhost:5432/app_db'
 
     try:
 
@@ -113,7 +123,7 @@ def main():
         Session = sessionmaker(bind=engine)
         session = Session()
 
-        json_data = load_json_from_file('models.json')
+        json_data = load_json_from_file('models2.json')
         insert_data(session, json_data)
 
         print("Data successfully inserted into PostgreSQL database.")

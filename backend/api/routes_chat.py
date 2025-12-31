@@ -51,18 +51,34 @@ def retrieve_relevant_documents(query: str, collection_id: int, top_k: int = 3) 
     """Retrieve relevant documents from the specified collection"""
     # First get collection metadata from main PostgreSQL
     meta_conn = get_connection(use_timescale=False)
+    embedding_model_name = "nomic-embed-text"  # Default fallback
     try:
         with meta_conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # Get the collection info
+            # Get the collection info and embedding model
             cur.execute("""
-                SELECT file_path 
-                FROM data_collections 
-                WHERE id = %s AND embeddings_status = 'completed'
+                SELECT dc.file_path, m.name as embedding_model_name
+                FROM data_collections dc
+                LEFT JOIN models m ON dc.embedding_model_id = m.id
+                WHERE dc.id = %s AND dc.embeddings_status = 'completed'
             """, (collection_id,))
             
             result = cur.fetchone()
             if not result:
                 raise HTTPException(status_code=404, detail="Collection not found or embeddings not ready")
+            
+            # Get the embedding model name if available
+            if result.get('embedding_model_name'):
+                embedding_model_name = result['embedding_model_name']
+            else:
+                # Try to get from embeddings_metadata
+                cur.execute("""
+                    SELECT embeddings_metadata->>'embedding_model' as embedding_model_name
+                    FROM data_collections
+                    WHERE id = %s
+                """, (collection_id,))
+                metadata_result = cur.fetchone()
+                if metadata_result and metadata_result.get('embedding_model_name'):
+                    embedding_model_name = metadata_result['embedding_model_name']
     finally:
         meta_conn.close()
     
@@ -83,11 +99,10 @@ def retrieve_relevant_documents(query: str, collection_id: int, top_k: int = 3) 
             if not columns:
                 raise HTTPException(status_code=400, detail="No queryable columns found in collection")
             
-            # Create a query that searches the embeddings
-            # This is a simplified version - you might want to use a more sophisticated search
+            # Create a query that searches the embeddings using the same model
             search_sql = f"""
                 WITH query_embedding AS (
-                    SELECT ai.ollama_embed('nomic-embed-text', %s, host => %s) AS embedding
+                    SELECT ai.ollama_embed(%s, %s, host => %s) AS embedding
                 )
                 SELECT {', '.join(f't."{col}"' for col in columns)}
                 FROM {table_name} t, query_embedding
@@ -95,7 +110,7 @@ def retrieve_relevant_documents(query: str, collection_id: int, top_k: int = 3) 
                 LIMIT %s
             """
             
-            cur.execute(search_sql, (query, settings.OLLAMA_HOST, top_k))
+            cur.execute(search_sql, (embedding_model_name, query, settings.OLLAMA_HOST, top_k))
             results = cur.fetchall()
             
             # Convert results to a list of dictionaries

@@ -21,3 +21,4 @@ backend/uploads
 node_modules
 backend/test/__pycache__
 backend/tasks/__pycache__
+tools/ollama_parser/__pycache__/

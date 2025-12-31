@@ -1,15 +1,17 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Response, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Response, BackgroundTasks, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import os
 import pandas as pd
 import json
 import uuid
 import logging
+import mimetypes
 
 from db.session import SessionLocal
 from db.models.data_collection import DataCollection
+from db.models.model import Model
 from tasks.embedding_tasks import process_embeddings_task
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,8 @@ def allowed_file(filename: str) -> bool:
 @router.post("/upload/")
 async def upload_file(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    embedding_model_id: Optional[int] = Form(None)
 ):
     db = SessionLocal()
     try:
@@ -38,6 +41,21 @@ async def upload_file(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
             )
+
+        # Validate embedding_model_id if provided
+        if embedding_model_id is not None:
+            model = db.query(Model).filter(Model.id == embedding_model_id).first()
+            if not model:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Embedding model with ID {embedding_model_id} not found"
+                )
+            # Check if the model is actually an embedding model
+            if not model.family.tags or 'embedding' not in model.family.tags.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Model {model.name} is not an embedding model"
+                )
 
         # Generate a unique filename
         file_ext = file.filename.rsplit(".", 1)[1].lower()
@@ -69,7 +87,8 @@ async def upload_file(
                 file_type=file_ext,
                 columns=json.dumps(df.columns.tolist()),
                 row_count=len(df),
-                embeddings_status='pending'
+                embeddings_status='pending',
+                embedding_model_id=embedding_model_id
             )
 
             db.add(collection)
@@ -123,11 +142,20 @@ def list_collections():
     """List all data collections"""
     with SessionLocal() as db:
         collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
-        return [{
-            **collection.to_dict(),
-            "embeddings_status": collection.embeddings_status,
-            "embeddings_metadata": collection.embeddings_metadata or {}
-        } for collection in collections]
+        result = []
+        for collection in collections:
+            collection_dict = {
+                **collection.to_dict(),
+                "embeddings_status": collection.embeddings_status,
+                "embeddings_metadata": collection.embeddings_metadata or {}
+            }
+            # Add embedding model name if available
+            if collection.embedding_model:
+                collection_dict["embedding_model_name"] = collection.embedding_model.name
+            elif collection.embeddings_metadata and collection.embeddings_metadata.get('embedding_model'):
+                collection_dict["embedding_model_name"] = collection.embeddings_metadata.get('embedding_model')
+            result.append(collection_dict)
+        return result
 
 @router.get("/collections/{collection_id}/embedding-status")
 def get_embedding_status(collection_id: int):
