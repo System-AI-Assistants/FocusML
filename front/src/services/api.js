@@ -144,12 +144,17 @@ export const getAssistantStatus = async (keycloak, assistantId) => {
     return await response.json();
 };
 
-export const getAssistants = async (keycloak) => {
+export const getAssistants = async (keycloak, showAll = false) => {
   if (!keycloak || !keycloak.token) {
     throw new Error('Keycloak not initialized or no token available');
   }
 
-  const response = await fetch(`${API_BASE_URL}/assistants/`, {
+  const params = new URLSearchParams();
+  if (showAll) {
+    params.append('show_all', 'true');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/assistants/?${params.toString()}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${keycloak.token}`,
@@ -353,7 +358,7 @@ export const createBenchmarkRun = async (keycloak, payload) => {
 
 // Add this to your api.js file
 
-export const getStatistics = async (keycloak, period = '7days') => {
+export const getStatistics = async (keycloak, period = '7days', showAll = false) => {
   if (!keycloak) {
     console.error('getStatistics: Keycloak instance is undefined');
     return null;
@@ -366,7 +371,13 @@ export const getStatistics = async (keycloak, period = '7days') => {
 
     console.log('Fetching statistics with token:', keycloak.token.substring(0, 20) + '...');
 
-    const response = await fetch(`${API_BASE_URL}/statistics/?period=${period}`, {
+    const params = new URLSearchParams();
+    params.append('period', period);
+    if (showAll) {
+      params.append('show_all', 'true');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/statistics/?${params.toString()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -777,6 +788,418 @@ export const getWidgetEmbedCode = async (keycloak, widgetId) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to fetch embed code');
+  }
+  return await response.json();
+};
+
+
+// ============ User Management API ============
+
+export const getUsers = async (keycloak, search = null, first = 0, max = 100) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const params = new URLSearchParams({ first: String(first), max: String(max) });
+  if (search) params.append('search', search);
+  
+  const response = await fetch(`${API_BASE_URL}/users/?${params.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch users');
+  }
+  return await response.json();
+};
+
+export const getUser = async (keycloak, userId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch user');
+  }
+  return await response.json();
+};
+
+export const getUserProfile = async (keycloak, userId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/profile/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch user profile');
+  }
+  return await response.json();
+};
+
+export const createUser = async (keycloak, userData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create user');
+  }
+  return await response.json();
+};
+
+export const updateUser = async (keycloak, userId, userData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update user');
+  }
+  return await response.json();
+};
+
+export const deleteUser = async (keycloak, userId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete user');
+  }
+  return await response.json();
+};
+
+export const resetUserPassword = async (keycloak, userId, password, temporary = false) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/reset-password/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password, temporary }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to reset password');
+  }
+  return await response.json();
+};
+
+export const toggleUserEnabled = async (keycloak, userId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/toggle-enabled/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to toggle user status');
+  }
+  return await response.json();
+};
+
+export const bulkAddUsersToGroup = async (keycloak, userIds, groupId, role = 'member') => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/bulk/add-to-group/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user_ids: userIds, group_id: groupId, role }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to add users to group');
+  }
+  return await response.json();
+};
+
+export const getCurrentUserInfo = async (keycloak) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/me/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch current user info');
+  }
+  return await response.json();
+};
+
+export const getCurrentUserRoles = async (keycloak) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/users/me/roles/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch user roles');
+  }
+  return await response.json();
+};
+
+
+// ============ Group Management API ============
+
+export const getGroups = async (keycloak, includeInactive = false) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const params = new URLSearchParams();
+  if (includeInactive) params.append('include_inactive', 'true');
+  
+  const response = await fetch(`${API_BASE_URL}/groups/?${params.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch groups');
+  }
+  return await response.json();
+};
+
+export const getGroup = async (keycloak, groupId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch group');
+  }
+  return await response.json();
+};
+
+export const createGroup = async (keycloak, groupData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(groupData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create group');
+  }
+  return await response.json();
+};
+
+export const updateGroup = async (keycloak, groupId, groupData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(groupData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update group');
+  }
+  return await response.json();
+};
+
+export const deleteGroup = async (keycloak, groupId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete group');
+  }
+  return await response.json();
+};
+
+export const getGroupMembers = async (keycloak, groupId, includeInactive = false) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const params = new URLSearchParams();
+  if (includeInactive) params.append('include_inactive', 'true');
+  
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/members/?${params.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch group members');
+  }
+  return await response.json();
+};
+
+export const addMemberToGroup = async (keycloak, groupId, userId, role = 'member') => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/members/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user_id: userId, role }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to add member to group');
+  }
+  return await response.json();
+};
+
+export const updateGroupMember = async (keycloak, groupId, userId, memberData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/members/${userId}/`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(memberData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update member');
+  }
+  return await response.json();
+};
+
+export const removeMemberFromGroup = async (keycloak, groupId, userId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/members/${userId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to remove member from group');
+  }
+  return await response.json();
+};
+
+export const getUserGroups = async (keycloak, userId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/user/${userId}/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch user groups');
+  }
+  return await response.json();
+};
+
+export const getGroupUsage = async (keycloak, groupId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/${groupId}/usage/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch group usage');
+  }
+  return await response.json();
+};
+
+export const syncGroupsFromKeycloak = async (keycloak) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/groups/sync-keycloak/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to sync groups from Keycloak');
   }
   return await response.json();
 };

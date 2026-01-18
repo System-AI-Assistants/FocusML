@@ -13,6 +13,7 @@ from api.routes_data_collections import router as data_collections_router
 from api.routes_chat import router as chat_router
 from api.routes_integrations import router as integrations_router
 from api.routes_widgets import router as widgets_router
+from api.routes_groups import router as groups_router
 from core.config import settings
 
 
@@ -63,6 +64,7 @@ app.include_router(routes_benchmarks.router)
 app.include_router(routes_statistics.router)
 app.include_router(integrations_router)
 app.include_router(widgets_router)
+app.include_router(groups_router)
 
 
 @app.get("/")

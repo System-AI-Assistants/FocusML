@@ -7,6 +7,7 @@ def init():
     import db.models.assistant
     import db.models.api_key
     import db.models.widget
+    import db.models.group
     
     # Create all tables
     print("Creating database tables...")

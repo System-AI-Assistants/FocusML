@@ -37,6 +37,7 @@ async def verify_api_key(request: Request, call_next):
         "/statistics/",
         "/data-collections/",
         "/widgets/",  # Widget endpoints use their own token authentication
+        "/groups/",  # Group management uses Keycloak
     ]
     
     # Also skip if path doesn't start with /assistants/ (only assistant endpoints should use API keys)

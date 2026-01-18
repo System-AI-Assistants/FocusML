@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Typography, Button, Drawer, Grid } from 'antd';
 import './Sidebar.css';
 import { Link, useLocation } from 'react-router-dom';
@@ -16,6 +16,8 @@ import {
   DatabaseOutlined,
   LockOutlined
 } from '@ant-design/icons';
+import { useKeycloak } from '@react-keycloak/web';
+import { getCurrentUserRoles } from '../services/api';
 
 const { Sider } = Layout;
 const { Title, Text } = Typography;
@@ -23,9 +25,27 @@ const { useBreakpoint } = Grid;
 
 const Sidebar = ({ collapsed, onCollapse }) => {
   const location = useLocation();
+  const { keycloak } = useKeycloak();
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md = 768px, below is mobile
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const rolesData = await getCurrentUserRoles(keycloak);
+        setIsAdmin(rolesData.is_admin);
+      } catch (error) {
+        console.error('Failed to check admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    if (keycloak?.authenticated) {
+      checkAdminStatus();
+    }
+  }, [keycloak]);
 
   // Menu content
   const menuContent = (
@@ -57,16 +77,17 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         <Menu.Item key="/benchmarking" icon={<DotChartOutlined />}>
           <Link to="/benchmarking">Benchmarking</Link>
         </Menu.Item>
-        <Menu.Item key="/users" icon={<UserOutlined />}>
-          <Link to="/users">User Management</Link>
-        </Menu.Item>
-        <Divider key="divider" />
-        {/*<Menu.Item key="http://localhost:5000/" icon={<ExperimentOutlined />}>*/}
-        {/*  <a href="http://localhost:5000/" target="_blank" rel="noopener noreferrer">MLflow</a>*/}
-        {/*</Menu.Item>*/}
-        <Menu.Item key="http://localhost:8080/" icon={<LockOutlined />}>
-          <a href="http://localhost:8080/" target="_blank" rel="noopener noreferrer">Keycloak</a>
-        </Menu.Item>
+        {isAdmin && (
+          <>
+            <Divider key="admin-divider" style={{ margin: '12px 0' }} />
+            <Menu.Item key="/users" icon={<UserOutlined />}>
+              <Link to="/users">User Management</Link>
+            </Menu.Item>
+            <Menu.Item key="http://localhost:8080/" icon={<LockOutlined />}>
+              <a href="http://localhost:8080/" target="_blank" rel="noopener noreferrer">Keycloak</a>
+            </Menu.Item>
+          </>
+        )}
       </Menu>
       
     </div>
@@ -79,7 +100,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       { key: '/assistants', icon: <AppstoreOutlined />, label: 'Assistants' },
       { key: '/benchmarking', icon: <DotChartOutlined />, label: 'Bench' },
       { key: '/integration', icon: <CodeSandboxOutlined />, label: 'Integrations' },
-      { key: '/users', icon: <UserOutlined />, label: 'Users' },
+      ...(isAdmin ? [{ key: '/users', icon: <UserOutlined />, label: 'Users' }] : []),
     ];
 
     return (

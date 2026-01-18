@@ -1,13 +1,21 @@
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
-from typing import Optional
+from typing import Optional, List
+from functools import wraps
 import logging
 
-from services.keycloack_service import keycloak_openid
+from services.keycloack_service import keycloak_openid, get_keycloak_admin
 
 logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
+# Platform roles
+ROLE_PLATFORM_ADMIN = "platform_admin"
+ROLE_USER = "user"
+
+# Keycloak realm role names (adjust if your Keycloak uses different names)
+KEYCLOAK_ADMIN_ROLES = ["platform_admin", "admin", "realm-admin"]
 
 def get_current_user(request: Request):
     """
@@ -79,3 +87,69 @@ def get_current_user(request: Request):
             detail="Token is not active",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def get_user_roles(token_info: dict) -> List[str]:
+    """
+    Extract roles from token info.
+    Keycloak stores roles in different places depending on configuration.
+    """
+    roles = []
+    
+    # Check realm_access roles (most common)
+    realm_access = token_info.get('realm_access', {})
+    roles.extend(realm_access.get('roles', []))
+    
+    # Check resource_access for client-specific roles
+    resource_access = token_info.get('resource_access', {})
+    for client, access in resource_access.items():
+        roles.extend(access.get('roles', []))
+    
+    # Check direct roles field
+    if 'roles' in token_info:
+        if isinstance(token_info['roles'], list):
+            roles.extend(token_info['roles'])
+    
+    # Check groups (Keycloak can map groups to roles)
+    if 'groups' in token_info:
+        roles.extend(token_info.get('groups', []))
+    
+    return list(set(roles))  # Remove duplicates
+
+
+def is_platform_admin(token_info: dict) -> bool:
+    """
+    Check if the current user is a platform admin.
+    """
+    roles = get_user_roles(token_info)
+    logger.info(f"[is_platform_admin] User roles: {roles}")
+    
+    # Check if user has any admin role
+    for admin_role in KEYCLOAK_ADMIN_ROLES:
+        if admin_role in roles:
+            return True
+    
+    return False
+
+
+def require_platform_admin(token_info: dict = Depends(get_current_user)):
+    """
+    Dependency that requires the user to be a platform admin.
+    Use this to protect admin-only endpoints.
+    """
+    if not is_platform_admin(token_info):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This action requires platform administrator privileges"
+        )
+    return token_info
+
+
+def get_current_user_with_roles(request: Request):
+    """
+    Get current user with roles included in the response.
+    """
+    token_info = get_current_user(request)
+    token_info['is_admin'] = is_platform_admin(token_info)
+    token_info['roles'] = get_user_roles(token_info)
+    return token_info

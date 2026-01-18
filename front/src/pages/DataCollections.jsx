@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Button, 
   Card, 
@@ -16,7 +17,8 @@ import {
   Progress,
   Row,
   Col,
-  Select
+  Select,
+  Switch
 } from 'antd';
 import { 
   // File Icons
@@ -203,6 +205,8 @@ const DataCollections = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [embeddingModels, setEmbeddingModels] = useState([]);
   const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const animationRef = useRef(null);
@@ -214,6 +218,14 @@ const DataCollections = () => {
     'Almost there...'
   ];
   const [textIndex, setTextIndex] = useState(0);
+
+  // Check if user is platform admin
+  useEffect(() => {
+    if (keycloak?.tokenParsed?.realm_access?.roles) {
+      const roles = keycloak.tokenParsed.realm_access.roles;
+      setIsAdmin(roles.includes('platform_admin'));
+    }
+  }, [keycloak]);
 
   // Format file size to human-readable format
   const formatFileSize = (bytes) => {
@@ -393,127 +405,150 @@ const DataCollections = () => {
   };
 
   // Table columns definition
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <div className="file-cell">
-          <span className="file-icon">
-            {getFileTypeIcon(record.file_type || record.type)}
-          </span>
-          <span className="file-name">{text}</span>
-        </div>
-      ),
-    },
-    {
-      title: 'Type',
-      dataIndex: 'file_type',
-      key: 'type',
-      render: (type) => type ? type.toUpperCase() : 'Unknown',
-    },
-    {
-      title: 'Size',
-      key: 'size',
-      render: (_, record) => {
-        if (record.file_type === 'url') return 'N/A';
-        if (record.file_type === 'database') return 'N/A';
-        return record.size ? formatFileSize(record.size) : '-';
+  const getColumns = () => {
+    const baseColumns = [
+      {
+        title: 'Name',
+        dataIndex: 'name',
+        key: 'name',
+        render: (text, record) => (
+          <div className="file-cell">
+            <span className="file-icon">
+              {getFileTypeIcon(record.file_type || record.type)}
+            </span>
+            <span className="file-name">{text}</span>
+          </div>
+        ),
       },
-    },
-    {
-      title: 'Records',
-      dataIndex: 'row_count',
-      key: 'records',
-      render: (count) => count ? count.toLocaleString() : '-',
-    },
-    {
-      title: 'Uploaded',
-      dataIndex: 'created_at',
-      key: 'uploadedAt',
-      render: (date) => date ? new Date(date).toLocaleString() : '-',
-    },
-    {
-      title: 'Status',
-      key: 'status',
-      render: () => (
-        <Tag color="green">Processed</Tag>
-      ),
-    },
-    {
-      title: 'Embedding Status',
-      key: 'embedding_status',
-      width: 200,
-      render: (_, record) => {
-        const status = record.embeddings_status || 'pending';
-        const isProcessing = status === 'processing' || status === 'pending';
-        
-        return (
-          <Space>
-            <Tag 
-              color={
-                status === 'completed' ? 'success' : 
-                status === 'failed' ? 'error' : 'processing'
-              }
-              icon={
-                status === 'completed' ? <CheckCircleOutlined /> :
-                status === 'failed' ? <CloseCircleOutlined /> : <ClockCircleOutlined />
-              }
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Tag>
-            {isProcessing && (
-              <Button 
-                type="text" 
-                size="small" 
-                icon={<ReloadOutlined />} 
-                onClick={() => checkEmbeddingStatus(record.id)}
-                loading={refreshingStatusId === record.id}
-              />
-            )}
+      {
+        title: 'Type',
+        dataIndex: 'file_type',
+        key: 'type',
+        render: (type) => type ? type.toUpperCase() : 'Unknown',
+      },
+      {
+        title: 'Size',
+        key: 'size',
+        render: (_, record) => {
+          if (record.file_type === 'url') return 'N/A';
+          if (record.file_type === 'database') return 'N/A';
+          return record.size ? formatFileSize(record.size) : '-';
+        },
+      },
+      {
+        title: 'Records',
+        dataIndex: 'row_count',
+        key: 'records',
+        render: (count) => count ? count.toLocaleString() : '-',
+      },
+      {
+        title: 'Uploaded',
+        dataIndex: 'created_at',
+        key: 'uploadedAt',
+        render: (date) => date ? new Date(date).toLocaleString() : '-',
+      },
+    ];
+    
+    // Add Owner column for admins viewing all collections
+    if (showAll && isAdmin) {
+      baseColumns.push({
+        title: 'Owner',
+        dataIndex: 'owner_username',
+        key: 'owner',
+        render: (text, record) => text ? (
+          <Link to={`/users/${record.owner}/profile`} style={{ color: 'var(--color-accent)' }}>
+            {text}
+          </Link>
+        ) : <Text type="secondary">{record.owner ? record.owner.substring(0, 8) + '...' : '-'}</Text>,
+      });
+    }
+    
+    baseColumns.push(
+      {
+        title: 'Status',
+        key: 'status',
+        render: () => (
+          <Tag color="green">Processed</Tag>
+        ),
+      },
+      {
+        title: 'Embedding Status',
+        key: 'embedding_status',
+        width: 200,
+        render: (_, record) => {
+          const status = record.embeddings_status || 'pending';
+          const isProcessing = status === 'processing' || status === 'pending';
+          
+          return (
+            <Space>
+              <Tag 
+                color={
+                  status === 'completed' ? 'success' : 
+                  status === 'failed' ? 'error' : 'processing'
+                }
+                icon={
+                  status === 'completed' ? <CheckCircleOutlined /> :
+                  status === 'failed' ? <CloseCircleOutlined /> : <ClockCircleOutlined />
+                }
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Tag>
+              {isProcessing && (
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<ReloadOutlined />} 
+                  onClick={() => checkEmbeddingStatus(record.id)}
+                  loading={refreshingStatusId === record.id}
+                />
+              )}
+            </Space>
+          );
+        },
+      },
+      {
+        title: 'Embedding Model',
+        key: 'embedding_model',
+        width: 200,
+        render: (_, record) => {
+          const modelName = record.embedding_model_name || 
+                           (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
+                           'N/A';
+          return <Tag color="blue">{modelName}</Tag>;
+        },
+      },
+      {
+        title: 'Actions',
+        key: 'actions',
+        width: 150,
+        fixed: 'right',
+        render: (_, record) => (
+          <Space size="middle">
+            <Button 
+              icon={<FileSearchOutlined />} 
+              onClick={() => handleView(record)}
+              title="View"
+            />
+            <Button 
+              icon={<DownloadOutlined />} 
+              onClick={() => handleDownload(record)}
+              title="Download"
+            />
+            <Button 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => handleDelete(record)}
+              title="Delete"
+            />
           </Space>
-        );
-      },
-    },
-    {
-      title: 'Embedding Model',
-      key: 'embedding_model',
-      width: 200,
-      render: (_, record) => {
-        const modelName = record.embedding_model_name || 
-                         (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
-                         'N/A';
-        return <Tag color="blue">{modelName}</Tag>;
-      },
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 150,
-      fixed: 'right',
-      render: (_, record) => (
-        <Space size="middle">
-          <Button 
-            icon={<FileSearchOutlined />} 
-            onClick={() => handleView(record)}
-            title="View"
-          />
-          <Button 
-            icon={<DownloadOutlined />} 
-            onClick={() => handleDownload(record)}
-            title="Download"
-          />
-          <Button 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => handleDelete(record)}
-            title="Delete"
-          />
-        </Space>
-      ),
-    },
-  ];
+        ),
+      }
+    );
+    
+    return baseColumns;
+  };
+
+  const columns = getColumns();
 
   // Focus input when mode changes
   useEffect(() => {
@@ -662,7 +697,12 @@ const DataCollections = () => {
   const refreshCollections = async () => {
     setTableLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/data-collections/collections/`, {
+      const params = new URLSearchParams();
+      if (showAll && isAdmin) {
+        params.append('show_all', 'true');
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${keycloak.token}`,
         },
@@ -740,7 +780,12 @@ const DataCollections = () => {
   };
 
   useEffect(() => {
-    refreshCollections();
+    if (keycloak && keycloak.authenticated) {
+      refreshCollections();
+    }
+  }, [keycloak, showAll, isAdmin]);
+
+  useEffect(() => {
     // Fetch embedding models
     const fetchEmbeddingModels = async () => {
       try {
@@ -877,20 +922,20 @@ const DataCollections = () => {
                       label: `${model.name}${model.family_name ? ` (${model.family_name})` : ''}`
                     }))}
                   />
-                  <Button
-                    type="primary"
-                    size="large"
-                    className="upload-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUpload();
-                    }}
-                    icon={<CloudUploadOutlined />}
+                <Button
+                  type="primary"
+                  size="large"
+                  className="upload-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpload();
+                  }}
+                  icon={<CloudUploadOutlined />}
                     disabled={!selectedEmbeddingModel}
                     block
-                  >
-                    Process File
-                  </Button>
+                >
+                  Process File
+                </Button>
                 </div>
               )}
             </div>
@@ -934,16 +979,18 @@ const DataCollections = () => {
       <Card 
         className="collections-card"
         title={
-          <div className="card-header">
-            <span>My Data Collections</span>
-            {/* <Button
-              type="text"
-              icon={<ReloadOutlined />}
-              onClick={refreshCollections}
-              loading={tableLoading}
-            >
-              Refresh
-            </Button> */}
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <span>{showAll && isAdmin ? 'All Data Collections' : 'My Data Collections'}</span>
+            {isAdmin && (
+              <Space>
+                <Text type="secondary" style={{ fontSize: 13 }}>Show All</Text>
+                <Switch 
+                  checked={showAll} 
+                  onChange={setShowAll} 
+                  size="small"
+                />
+              </Space>
+            )}
           </div>
         }
         bordered={false}

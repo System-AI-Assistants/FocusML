@@ -3,20 +3,29 @@ import './HeaderBar.css';
 import { Layout, Input, Avatar, Dropdown, Menu, Space, Typography } from 'antd';
 import { UserOutlined, LogoutOutlined, SettingOutlined, SearchOutlined } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';
+import { useNavigate } from 'react-router-dom';
 
 const { Header } = Layout;
 const { Text } = Typography;
 
 const HeaderBar = () => {
   const { keycloak } = useKeycloak();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     keycloak.logout();
   };
 
+  const handleProfile = () => {
+    const userId = keycloak.tokenParsed?.sub;
+    if (userId) {
+      navigate(`/users/${userId}/profile`);
+    }
+  };
+
   const menu = (
     <Menu>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
+      <Menu.Item key="profile" icon={<UserOutlined />} onClick={handleProfile}>
         Profile
       </Menu.Item>
       <Menu.Item key="settings" icon={<SettingOutlined />}>

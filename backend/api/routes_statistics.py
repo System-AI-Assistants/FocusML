@@ -6,17 +6,27 @@ from enum import Enum
 from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.deps import get_current_user
+from api.deps import get_current_user, is_platform_admin
 from db.models.assistant import Assistant
+from db.models.group import GroupMember
 from db.session import SessionLocal
 from services.keycloack_service import get_keycloak_admin
 from schemas.statistics import StatisticsResponse, SystemMetrics, AssistantStats, UserStats, GPUMetrics
 import mlflow
 from mlflow.tracking import MlflowClient
 from datetime import datetime
+
+
+def get_user_group_ids(session, user_id: str) -> List[int]:
+    """Get all group IDs that a user is a member of."""
+    memberships = session.query(GroupMember).filter(
+        GroupMember.user_id == user_id,
+        GroupMember.is_active == True
+    ).all()
+    return [m.group_id for m in memberships]
 
 
 try:
@@ -77,12 +87,27 @@ def calculate_percentage_change(current: int, previous: int) -> Optional[float]:
     return ((current - previous) / previous) * 100
 
 
-def get_assistant_statistics(session, period: TimePeriod) -> AssistantStats:
-    """Get assistant statistics for the specified period"""
+def get_assistant_statistics(session, period: TimePeriod, user_id: str = None, user_group_ids: List[int] = None, show_all: bool = False) -> AssistantStats:
+    """Get assistant statistics for the specified period, optionally filtered by user ownership/groups"""
     start_date, end_date = get_period_dates(period)
 
-    # Current period stats
+    # Base query
     query = session.query(Assistant)
+    
+    # Apply RBAC filter if not showing all
+    if not show_all and user_id:
+        ownership_filter = or_(
+            Assistant.owner == user_id,
+            Assistant.owner == None,
+        )
+        if user_group_ids:
+            ownership_filter = or_(
+                ownership_filter,
+                Assistant.group_id.in_(user_group_ids)
+            )
+        query = query.filter(ownership_filter)
+
+    # Current period stats
     if start_date:
         current_total = query.filter(Assistant.create_time <= end_date).count()
         current_active = query.filter(
@@ -266,18 +291,39 @@ def calculate_availability_metrics() -> Dict[str, Any]:
     }
 
 
-@router.get("/", response_model=StatisticsResponse, dependencies=[Depends(get_current_user)])
+@router.get("/", response_model=StatisticsResponse)
 def get_statistics(
-        period: TimePeriod = Query(TimePeriod.SEVEN_DAYS, description="Time period for statistics")
+        period: TimePeriod = Query(TimePeriod.SEVEN_DAYS, description="Time period for statistics"),
+        show_all: bool = Query(False, description="Show all statistics (admin only)"),
+        token_info: dict = Depends(get_current_user)
 ):
     """Get comprehensive system statistics for the specified period"""
     try:
         with SessionLocal() as session:
-            # Get assistant statistics
-            assistant_stats = get_assistant_statistics(session, period)
+            user_id = token_info.get('sub')
+            user_is_admin = is_platform_admin(token_info)
+            
+            # Get user's group IDs for RBAC
+            user_group_ids = get_user_group_ids(session, user_id)
+            
+            # Determine if we should show all (only admins can)
+            should_show_all = show_all and user_is_admin
+            
+            # Get assistant statistics with RBAC
+            assistant_stats = get_assistant_statistics(
+                session, 
+                period, 
+                user_id=user_id,
+                user_group_ids=user_group_ids,
+                show_all=should_show_all
+            )
 
-            # Get user statistics
-            user_stats = get_user_statistics(period)
+            # Get user statistics (only for admins)
+            if user_is_admin:
+                user_stats = get_user_statistics(period)
+            else:
+                # For non-admin users, don't show user stats
+                user_stats = UserStats(total_users=None, change_percentage=None)
 
             # Get token usage (placeholder for now)
             token_usage = get_token_usage_statistics(session, period)
@@ -310,13 +356,26 @@ def get_system_metrics_only():
     return get_system_metrics()
 
 
-@router.get("/assistants/", dependencies=[Depends(get_current_user)])
+@router.get("/assistants/")
 def get_assistant_statistics_only(
-        period: TimePeriod = Query(TimePeriod.SEVEN_DAYS, description="Time period for statistics")
+        period: TimePeriod = Query(TimePeriod.SEVEN_DAYS, description="Time period for statistics"),
+        show_all: bool = Query(False, description="Show all statistics (admin only)"),
+        token_info: dict = Depends(get_current_user)
 ):
     """Get assistant statistics only"""
     try:
         with SessionLocal() as session:
-            return get_assistant_statistics(session, period)
+            user_id = token_info.get('sub')
+            user_is_admin = is_platform_admin(token_info)
+            user_group_ids = get_user_group_ids(session, user_id)
+            should_show_all = show_all and user_is_admin
+            
+            return get_assistant_statistics(
+                session, 
+                period,
+                user_id=user_id,
+                user_group_ids=user_group_ids,
+                show_all=should_show_all
+            )
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

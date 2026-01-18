@@ -1,41 +1,316 @@
+/* ============================================
+   USER MANAGEMENT PAGE - TAILUX THEME
+   ============================================ */
+
 .user-page-container {
-  padding: 24px;
-  background: #f8f9fa;
+  padding: 24px 32px;
+  background: #f8fafc;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .user-page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 28px;
+}
+
+.user-page-header .ant-typography {
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================
+   TABLE OVERRIDES
+   ============================================ */
+.user-page-container .ant-table-wrapper {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.user-page-container .ant-table {
+  background: transparent;
+}
+
+.user-page-container .ant-table-container {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.user-page-container .ant-table thead > tr > th {
+  font-weight: 600;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 14px 16px;
+}
+
+.user-page-container .ant-table tbody > tr > td {
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 16px;
+}
+
+.user-page-container .ant-table tbody > tr:hover > td {
+  background: #f8fafc !important;
+}
+
+.user-page-container .ant-table tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* ============================================
+   CARD OVERRIDES
+   ============================================ */
+.user-page-container .ant-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.user-page-container .ant-card-body {
+  padding: 24px;
+}
+
+/* ============================================
+   TAG OVERRIDES - FLAT DESIGN
+   ============================================ */
+.user-page-container .ant-tag {
+  border: none;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+.user-page-container .ant-tag-green {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.user-page-container .ant-tag-red {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.user-page-container .ant-tag-blue {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.user-page-container .ant-tag-purple {
+  background: #f5f3ff;
+  color: #8b5cf6;
+}
+
+.user-page-container .ant-tag-gold,
+.user-page-container .ant-tag-orange {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.user-page-container .ant-tag-default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ============================================
+   TABS STYLING
+   ============================================ */
+.user-page-container .ant-tabs-nav {
   margin-bottom: 24px;
 }
 
-/* Table tweaks */
-.ant-table-wrapper {
-  font-family: 'Inter', sans-serif;
+.user-page-container .ant-tabs-tab {
+  padding: 12px 20px;
+  font-weight: 500;
+  color: #64748b;
+  font-size: 15px;
 }
 
-.ant-table thead > tr > th {
+.user-page-container .ant-tabs-tab:hover {
+  color: #0f172a;
+}
+
+.user-page-container .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #3b82f6 !important;
   font-weight: 600;
-  background: #fff;
-  border-bottom: 1px solid var(--color-border);
 }
 
-.ant-table tbody > tr:hover > td {
-  background: var(--color-bg-hover);
+.user-page-container .ant-tabs-ink-bar {
+  background: #3b82f6 !important;
+  height: 3px !important;
+  border-radius: 3px 3px 0 0;
 }
 
-/* Tag colors overridden to be flat */
-.ant-tag-green {
-  background: rgba(82, 196, 26, 0.15);
-  color: #52c41a;
-  border: none;
+/* ============================================
+   BUTTON GROUPS IN TABLES
+   ============================================ */
+.user-page-container .ant-btn-text {
+  color: #64748b;
+  border-radius: 8px;
 }
 
-.ant-tag-red {
-  background: rgba(245, 34, 45, 0.15);
-  color: #f5222d;
-  border: none;
+.user-page-container .ant-btn-text:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.user-page-container .ant-btn-text.ant-btn-dangerous {
+  color: #ef4444;
+}
+
+.user-page-container .ant-btn-text.ant-btn-dangerous:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ============================================
+   SEARCH INPUT
+   ============================================ */
+.user-page-container .ant-input-search {
+  border-radius: 10px;
+}
+
+.user-page-container .ant-input-search .ant-input {
+  border-radius: 10px;
+  border-color: #e2e8f0;
+  padding: 10px 14px;
+}
+
+.user-page-container .ant-input-search .ant-input:hover {
+  border-color: #cbd5e1;
+}
+
+.user-page-container .ant-input-search .ant-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ============================================
+   BADGE OVERRIDES
+   ============================================ */
+.user-page-container .ant-badge-count {
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* ============================================
+   AVATAR STYLING
+   ============================================ */
+.user-page-container .ant-avatar {
+  font-weight: 600;
+}
+
+/* ============================================
+   DRAWER STYLING
+   ============================================ */
+.user-page-container .ant-drawer-content {
+  border-radius: 20px 0 0 20px;
+}
+
+.user-page-container .ant-drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.user-page-container .ant-drawer-body {
+  padding: 24px;
+  background: #f8fafc;
+}
+
+/* ============================================
+   MODAL STYLING
+   ============================================ */
+.user-page-container .ant-modal-content {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.user-page-container .ant-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.user-page-container .ant-modal-body {
+  padding: 24px;
+}
+
+/* ============================================
+   COLLAPSE PANELS
+   ============================================ */
+.user-page-container .ant-collapse {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.user-page-container .ant-collapse-item {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.user-page-container .ant-collapse-item:last-child {
+  border-bottom: none;
+}
+
+.user-page-container .ant-collapse-header {
+  font-weight: 600;
+  color: #0f172a;
+  padding: 16px 20px !important;
+}
+
+.user-page-container .ant-collapse-content-box {
+  padding: 20px !important;
+  background: #fafbfc;
+}
+
+/* ============================================
+   DESCRIPTIONS
+   ============================================ */
+.user-page-container .ant-descriptions-bordered .ant-descriptions-item-label {
+  background: #f8fafc;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.user-page-container .ant-descriptions-bordered .ant-descriptions-item-content {
+  background: #ffffff;
+}
+
+/* ============================================
+   STATISTIC CARDS
+   ============================================ */
+.user-page-container .ant-statistic-title {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.user-page-container .ant-statistic-content-value {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+.user-page-container .ant-progress-bg {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+.user-page-container .ant-progress-inner {
+  background: #e2e8f0;
+}
+
+/* ============================================
+   TOOLTIP ENHANCEMENTS
+   ============================================ */
+.user-page-container .ant-tooltip-inner {
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
 }

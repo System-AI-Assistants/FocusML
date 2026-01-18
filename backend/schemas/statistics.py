@@ -11,7 +11,7 @@ class AssistantStats(BaseModel):
 
 
 class UserStats(BaseModel):
-    total_users: int
+    total_users: Optional[int] = None
     change_percentage: Optional[float] = None
 
 class GPUMetrics(BaseModel):

@@ -6,6 +6,9 @@ import Sidebar from './components/Sidebar';
 import HeaderBar from './components/HeaderBar';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
+import CreateUser from './pages/CreateUser';
+import CreateGroup from './pages/CreateGroup';
+import UserProfile from './pages/UserProfile';
 import Chat from './pages/Chat';
 
 import './App.css';
@@ -39,6 +42,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/users/create" element={<CreateUser />} />
+              <Route path="/users/:userId/profile" element={<UserProfile />} />
+              <Route path="/groups/create" element={<CreateGroup />} />
               <Route path="/collections" element={<DataCollections />} />
               <Route path="/assistants" element={<Assistants />} />
               <Route path="/assistants/add" element={<AddAssistant />} />

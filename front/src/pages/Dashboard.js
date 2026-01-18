@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {useKeycloak} from '@react-keycloak/web';
 import './Dashboard.css';
-import {Card, Row, Col, Statistic, List, Typography, Progress, Tag, Spin} from 'antd';
+import {Card, Row, Col, Statistic, List, Typography, Progress, Tag, Spin, Switch, Space} from 'antd';
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
@@ -30,6 +30,18 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [pollingEnabled, setPollingEnabled] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  // Check if user is platform admin
+  useEffect(() => {
+    if (keycloak?.tokenParsed?.realm_access?.roles) {
+      const roles = keycloak.tokenParsed.realm_access.roles;
+      // Check for any admin role
+      const adminRoles = ['platform_admin', 'admin', 'realm-admin'];
+      setIsAdmin(adminRoles.some(role => roles.includes(role)));
+    }
+  }, [keycloak]);
 
   // Fetch statistics data
   const fetchStatistics = async (period, showLoading = true) => {
@@ -37,7 +49,7 @@ function Dashboard() {
 
     if (showLoading) setLoading(true);
     try {
-      const data = await getStatistics(keycloak, period);
+      const data = await getStatistics(keycloak, period, showAll && isAdmin);
       setStatistics(data);
     } catch (error) {
       console.error('Failed to fetch statistics:', error);
@@ -63,7 +75,7 @@ function Dashboard() {
         clearInterval(intervalId);
       }
     };
-  }, [keycloak?.authenticated, selectedPeriod, pollingEnabled]);
+  }, [keycloak?.authenticated, selectedPeriod, pollingEnabled, showAll, isAdmin]);
 
   const handlePeriodChange = (newPeriod) => {
     setSelectedPeriod(newPeriod);
@@ -177,7 +189,21 @@ function Dashboard() {
   return (
     <div className="page-container">
       <div className="sticky-header">
-        <div className="page-title-main">Dashboard</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div className="page-title-main">
+            {showAll && isAdmin ? 'Dashboard (All Users)' : 'My Dashboard'}
+          </div>
+          {isAdmin && (
+            <Space style={{ marginLeft: 16 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>Show All</Text>
+              <Switch 
+                checked={showAll} 
+                onChange={setShowAll}
+                size="small"
+              />
+            </Space>
+          )}
+        </div>
         <div>
           <PeriodSelector
             onPeriodChange={handlePeriodChange}
@@ -227,7 +253,7 @@ function Dashboard() {
 
       {/* Key Statistics */}
       <Row gutter={[24, 24]} style={{marginBottom: '24px'}}>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={12} lg={isAdmin ? 6 : 8}>
           <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
             <div className="stat-title">Active Assistants</div>
 
@@ -242,29 +268,27 @@ function Dashboard() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
-            <div className="stat-title">Total Users</div>
-            <div className="stat-value" style={{color: '#722ed1'}}>
-              {formatNumber(statistics?.user_stats?.total_users)}
-            </div>
+        {isAdmin && (
+          <Col xs={24} sm={12} lg={6}>
+            <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
+              <div className="stat-title">Total Users</div>
+              <div className="stat-value" style={{color: '#722ed1'}}>
+                {formatNumber(statistics?.user_stats?.total_users)}
+              </div>
 
-            {statistics?.user_stats?.change_percentage !== null
-              ? (
+              {statistics?.user_stats?.change_percentage !== null && (
                 <div style={{marginTop: '8px'}}>
                   <UserOutlined style={{color: '#722ed1', marginRight: '4px'}}/>
                   <Text>
                     {`${statistics?.user_stats?.change_percentage > 0 ? '+' : ''}${statistics?.user_stats?.change_percentage}% change`}
                   </Text>
                 </div>
-              )
-              : null}
+              )}
+            </Card>
+          </Col>
+        )}
 
-
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={12} lg={isAdmin ? 6 : 8}>
           <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
             <div className="stat-title">Token Usage</div>
             <div className="stat-value" style={{color: '#1890ff'}}>
@@ -279,7 +303,7 @@ function Dashboard() {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={12} lg={isAdmin ? 6 : 8}>
           <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
             <div className="stat-title">Uptime</div>
             <div className="stat-value" style={{color: '#52c41a'}}>

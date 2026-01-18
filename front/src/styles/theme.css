@@ -1,46 +1,482 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --font-family: 'Inter', sans-serif;
-  --color-text: #1f1f1f;
-  --color-text-secondary: #8c8c8c;
-  --color-border: #e6e6e6;
-  --color-bg-hover: #f5f5f5;
-  --color-accent: #1890ff;
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-hover: #f1f5f9;
+  --color-bg-active: #e2e8f0;
+  
+  /* Text Colors */
+  --color-text: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #ffffff;
+  
+  /* Border Colors */
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-border-focus: #3b82f6;
+  
+  /* Primary Accent - Modern Blue */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-light: #eff6ff;
+  --color-primary-muted: rgba(59, 130, 246, 0.1);
+  
+  /* Secondary Colors */
+  --color-success: #10b981;
+  --color-success-light: #ecfdf5;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fffbeb;
+  --color-error: #ef4444;
+  --color-error-light: #fef2f2;
+  --color-info: #06b6d4;
+  --color-info-light: #ecfeff;
+  
+  /* Purple Accent */
+  --color-accent: #8b5cf6;
+  --color-accent-light: #f5f3ff;
+  
+  /* Shadows - Soft & Subtle */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  
+  /* Border Radius */
+  --radius-sm: 6px;
   --radius: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
 }
 
 html, body {
   font-family: var(--font-family);
   color: var(--color-text);
+  background: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a, .ant-typography a {
-  color: var(--color-accent);
+  color: var(--color-primary);
+  transition: color var(--transition-fast);
+}
+
+a:hover, .ant-typography a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.ant-btn {
+  font-family: var(--font-family);
+  font-weight: 500;
+  border-radius: var(--radius);
+  transition: all var(--transition-base);
+  box-shadow: none;
+}
+
+.ant-btn-default {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.ant-btn-default:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 .ant-btn-primary {
-  background: var(--color-accent);
-  border-radius: var(--radius);
+  background: var(--color-primary);
   border: none;
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .ant-btn-primary:hover {
-  background: #40a9ff;
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
-.ant-input {
-  border-radius: var(--radius);
+.ant-btn-text {
+  color: var(--color-text-secondary);
+}
+
+.ant-btn-text:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+/* ============================================
+   INPUTS
+   ============================================ */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker,
+.ant-input-number {
+  font-family: var(--font-family);
+  border-radius: var(--radius) !important;
+  border-color: var(--color-border) !important;
+  transition: all var(--transition-base);
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-select-selector:hover,
+.ant-picker:hover,
+.ant-input-number:hover {
+  border-color: var(--color-text-muted) !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused,
+.ant-input-number-focused {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-muted) !important;
+}
+
+.ant-input-number-group-addon {
+  background: var(--color-bg-tertiary);
   border-color: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
-.ant-card, .ant-card-bordered, .ant-card-head {
-  box-shadow: none !important;
+/* ============================================
+   CARDS
+   ============================================ */
+.ant-card {
+  font-family: var(--font-family);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xs) !important;
+  transition: all var(--transition-base);
 }
 
+.ant-card:hover {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.ant-card-head {
+  border-bottom: 1px solid var(--color-border-light);
+  font-weight: 600;
+}
+
+.ant-card-head-title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
 .ant-table {
   font-family: var(--font-family);
+  background: transparent;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--color-bg-tertiary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 16px !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--color-border-light) !important;
+  padding: 14px 16px !important;
+  color: var(--color-text);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: var(--color-bg-hover) !important;
+}
+
+.ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* ============================================
+   TAGS
+   ============================================ */
+.ant-tag {
+  font-family: var(--font-family);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: none;
+  padding: 2px 10px;
+}
+
+.ant-tag-blue {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.ant-tag-green {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.ant-tag-red {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.ant-tag-gold, .ant-tag-orange {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.ant-tag-purple {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.ant-tag-default {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.ant-badge-status-success {
+  background: var(--color-success);
+}
+
+.ant-badge-status-error {
+  background: var(--color-error);
+}
+
+.ant-badge-status-warning {
+  background: var(--color-warning);
+}
+
+/* ============================================
+   MODALS & DRAWERS
+   ============================================ */
+.ant-modal-content {
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-xl) !important;
+  overflow: hidden;
+}
+
+.ant-modal-header {
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 20px 24px;
+}
+
+.ant-modal-title {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.ant-modal-body {
+  padding: 24px;
+}
+
+.ant-drawer-content {
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+}
+
+.ant-drawer-header {
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 20px 24px;
+}
+
+.ant-drawer-title {
+  font-weight: 600;
+}
+
+/* ============================================
+   FORM
+   ============================================ */
+.ant-form-item-label > label {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.ant-form-item-explain {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* ============================================
+   SWITCH
+   ============================================ */
+.ant-switch {
+  background: var(--color-bg-active);
+}
+
+.ant-switch-checked {
+  background: var(--color-primary) !important;
+}
+
+/* ============================================
+   SLIDER
+   ============================================ */
+.ant-slider-track {
+  background: var(--color-primary) !important;
+}
+
+.ant-slider-handle {
+  border-color: var(--color-primary) !important;
+}
+
+.ant-slider-handle:hover,
+.ant-slider-handle:focus {
+  border-color: var(--color-primary-hover) !important;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+.ant-tabs-tab {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 12px 16px;
+  transition: all var(--transition-fast);
+}
+
+.ant-tabs-tab:hover {
+  color: var(--color-text);
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+
+.ant-tabs-ink-bar {
+  background: var(--color-primary) !important;
+  height: 3px !important;
+  border-radius: 3px 3px 0 0;
+}
+
+/* ============================================
+   BREADCRUMB
+   ============================================ */
+.ant-breadcrumb {
+  font-size: 14px;
+}
+
+.ant-breadcrumb a {
+  color: var(--color-text-secondary);
+}
+
+.ant-breadcrumb a:hover {
+  color: var(--color-primary);
+}
+
+.ant-breadcrumb li:last-child {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ============================================
+   COLLAPSE
+   ============================================ */
+.ant-collapse {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) !important;
+}
+
+.ant-collapse-item {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.ant-collapse-header {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* ============================================
+   DESCRIPTIONS
+   ============================================ */
+.ant-descriptions-bordered .ant-descriptions-item-label {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* ============================================
+   AVATAR
+   ============================================ */
+.ant-avatar {
+  font-weight: 600;
+}
+
+/* ============================================
+   POPCONFIRM & TOOLTIP
+   ============================================ */
+.ant-popover-inner {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.ant-tooltip-inner {
+  border-radius: var(--radius);
+}
+
+/* ============================================
+   PROGRESS
+   ============================================ */
+.ant-progress-bg {
+  background: var(--color-primary);
+}
+
+/* ============================================
+   STATISTIC
+   ============================================ */
+.ant-statistic-title {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ant-statistic-content {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* ============================================
+   MESSAGE & NOTIFICATION
+   ============================================ */
+.ant-message-notice-content {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }

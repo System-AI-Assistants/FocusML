@@ -1,70 +1,86 @@
-# Getting Started with Create React App
+# FocusML Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React application for the FocusML platform. Provides a dashboard, assistant management, benchmarking interface, user administration, and chat functionality.
 
-## Available Scripts
+## Prerequisites
 
-In the project directory, you can run:
+- Node.js 18+
+- npm or yarn
 
-### `npm start`
+## Setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Install Dependencies
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+npm install
+```
 
-### `npm test`
+### Configure Environment
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The application connects to the backend API. Configure the API URL in `src/services/api.js` if needed.
 
-### `npm run build`
+For Keycloak authentication, configure settings in `src/keycloak.js`.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Development
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Start the development server:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm start
+```
 
-### `npm run eject`
+The application will be available at `http://localhost:3000`.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Production Build
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Create an optimized production build:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+npm run build
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Output is placed in the `build/` directory.
 
-## Learn More
+## Project Structure
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+front/
+├── public/           # Static assets
+├── src/
+│   ├── components/   # Reusable UI components
+│   ├── pages/        # Page components
+│   ├── services/     # API client
+│   ├── styles/       # Global styles and themes
+│   ├── App.js        # Main application component
+│   └── index.js      # Entry point
+└── package.json
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Pages
 
-### Code Splitting
+| Route | Description |
+|-------|-------------|
+| `/` | Dashboard with statistics |
+| `/assistants` | AI assistant management |
+| `/assistants/add` | Create new assistant |
+| `/data-collections` | Data collection management |
+| `/benchmarks` | Benchmark execution and results |
+| `/models` | Model registry |
+| `/users` | User and group administration |
+| `/widgets` | Embeddable chat widget configuration |
+| `/integrations` | API keys and integrations |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Testing
 
-### Analyzing the Bundle Size
+```bash
+npm test
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Docker
 
-### Making a Progressive Web App
+Build and run with Docker:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+docker build -t focusml-frontend .
+docker run -p 3000:80 focusml-frontend
+```

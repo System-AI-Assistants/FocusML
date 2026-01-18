@@ -1,68 +1,96 @@
-# MLOps Platform API
+# FocusML Backend
 
-This directory contains the FastAPI backend for the MLOps platform. It provides a secure API for managing users via Keycloak and will be extended to handle other platform resources.
+FastAPI backend for the FocusML platform. Provides REST APIs for user management, assistant orchestration, model registry, benchmarking, and data collection management.
 
-## Setup and Installation
+## Prerequisites
 
-### 1. Prerequisites
+- Python 3.10+
+- PostgreSQL database
+- Running Keycloak instance
+- Ollama (for local model inference)
 
-- Python 3.8+
-- A running Keycloak instance
+## Setup
 
-### 2. Create a Virtual Environment
-
-It is highly recommended to use a virtual environment to manage dependencies.
-
-```bash
-# Navigate to the api directory
-cd /path/to/your/project/api
-
-# Create a virtual environment
-python3 -m venv venv
-
-# Activate the virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-
-# On Windows:
-# .\venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-Install all required Python packages using the `requirements.txt` file.
+### 1. Create Virtual Environment
 
 ```bash
-(venv) pip install -r requirements.txt
+cd backend
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# or: .\venv\Scripts\activate  # Windows
 ```
 
-### 4. Configure Environment Variables
-
-The application requires credentials to connect to your Keycloak instance. These are loaded from a `.env` file.
-
-1.  **Copy the example file:**
-
-    ```bash
-    cp .env.example .env
-    ```
-
-2.  **Edit the `.env` file** with your specific Keycloak configuration:
-
-    - `KEYCLOAK_SERVER_URL`: The base URL of your Keycloak server (e.g., `http://localhost:8080/`).
-    - `KEYCLOAK_REALM_NAME`: The name of the realm you are using.
-    - `KEYCLOAK_ADMIN_CLIENT_ID`: The client ID for a client with admin privileges (often `admin-cli` by default).
-    - `KEYCLOAK_ADMIN_CLIENT_SECRET`: The client secret for your admin client. You must enable the "Service Accounts Enabled" option and get the secret from the "Credentials" tab in the Keycloak admin console for your client.
-    - `KEYCLOAK_FRONTEND_CLIENT_ID`: The client ID of your React frontend application (e.g., `react-app`).
-
-## Running the Application
-
-Once the setup is complete, you can run the FastAPI server using Uvicorn.
+### 2. Install Dependencies
 
 ```bash
-(venv) uvicorn main:app --reload
+pip install -r requirements.txt
 ```
 
-- The server will start on `http://localhost:8000`.
-- The `--reload` flag enables hot-reloading, so the server will automatically restart when you make code changes.
+### 3. Configure Environment
 
-Your API is now running and ready to accept requests from the React frontend.
+Copy the example environment file and configure your settings:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `KEYCLOAK_SERVER_URL` | Keycloak server URL |
+| `KEYCLOAK_REALM_NAME` | Keycloak realm |
+| `KEYCLOAK_ADMIN_CLIENT_ID` | Admin client ID |
+| `KEYCLOAK_ADMIN_CLIENT_SECRET` | Admin client secret |
+| `KEYCLOAK_FRONTEND_CLIENT_ID` | Frontend client ID |
+| `OLLAMA_HOST` | Ollama server URL |
+| `MLFLOW_TRACKING_URI` | MLflow tracking server |
+
+## Running
+
+Start the development server:
+
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at `http://localhost:8000`.
+
+API documentation is available at:
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Project Structure
+
+```
+backend/
+├── api/              # Route handlers
+├── core/             # Configuration and utilities
+├── db/               # Database models and session
+├── schemas/          # Pydantic request/response models
+├── services/         # External service integrations
+├── tasks/            # Background tasks
+├── tests/            # Test suite
+├── uploads/          # Uploaded data files
+└── main.py           # Application entry point
+```
+
+## API Endpoints
+
+| Prefix | Description |
+|--------|-------------|
+| `/users` | User management |
+| `/groups` | Group management |
+| `/assistants` | AI assistant CRUD and chat |
+| `/models` | Model registry |
+| `/benchmarks` | Benchmark execution |
+| `/data-collections` | Data collection management |
+| `/statistics` | Platform statistics |
+| `/widgets` | Embeddable chat widgets |
+
+## Testing
+
+```bash
+pytest tests/
+```
