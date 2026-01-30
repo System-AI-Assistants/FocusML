@@ -4,6 +4,9 @@ from db.base import Base
 def init():
     # Import all models here to ensure they are registered with SQLAlchemy
     import db.models.data_collection
+    import db.models.assistant
+    import db.models.api_key
+    import db.models.widget
     
     # Create all tables
     print("Creating database tables...")

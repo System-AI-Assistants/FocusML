@@ -12,6 +12,7 @@ from api import routes_users, routes_assistants, routes_models, routes_benchmark
 from api.routes_data_collections import router as data_collections_router
 from api.routes_chat import router as chat_router
 from api.routes_integrations import router as integrations_router
+from api.routes_widgets import router as widgets_router
 from core.config import settings
 
 
@@ -36,15 +37,17 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://aiassistant.smartlilac.com",
-                   "http://localhost:3000",
-                   "http://localhost:8000",
-                   "http://127.0.0.1:3000"
-                   "http://127.0.0.1:8000"
-                   ],
-
+    allow_origins=[
+        "https://aiassistant.smartlilac.com",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "null",  # For file:// protocol testing
+    ],
+    allow_origin_regex=r"https?://.*",  # Allow any http/https origin for widget testing
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -59,6 +62,7 @@ app.include_router(data_collections_router, prefix="/data-collections", tags=["D
 app.include_router(routes_benchmarks.router)
 app.include_router(routes_statistics.router)
 app.include_router(integrations_router)
+app.include_router(widgets_router)
 
 
 @app.get("/")

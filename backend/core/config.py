@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # MLflow
     MLFLOW_TRACKING_URI: str = "http://mlflow:5000"
     
+    # Frontend/API URLs
+    FRONTEND_URL: str = "http://localhost:3000"
+    API_PUBLIC_URL: str = "http://localhost:8000"
+    
     @property
     def TIMESCALE_DATABASE_URL(self) -> str:
         return f"postgresql://{self.TIMESCALE_DB_USER}:{self.TIMESCALE_DB_PASSWORD}@{self.TIMESCALE_DB_HOST}:{self.TIMESCALE_DB_PORT}/{self.TIMESCALE_DB_NAME}"

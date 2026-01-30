@@ -597,3 +597,186 @@ export const removeWhitelistEntry = async (keycloak, keyId, entryId) => {
   }
   return await response.json();
 };
+
+// Widget API functions
+export const createWidget = async (keycloak, widgetData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(widgetData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create widget');
+  }
+  return await response.json();
+};
+
+export const getWidgets = async (keycloak, assistantId = null) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  let url = `${API_BASE_URL}/widgets/`;
+  if (assistantId) {
+    url += `?assistant_id=${assistantId}`;
+  }
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch widgets');
+  }
+  return await response.json();
+};
+
+export const getWidget = async (keycloak, widgetId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch widget');
+  }
+  return await response.json();
+};
+
+export const updateWidget = async (keycloak, widgetId, widgetData) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(widgetData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update widget');
+  }
+  return await response.json();
+};
+
+export const deleteWidget = async (keycloak, widgetId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete widget');
+  }
+  return await response.json();
+};
+
+export const regenerateWidgetToken = async (keycloak, widgetId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/regenerate-token/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to regenerate widget token');
+  }
+  return await response.json();
+};
+
+export const getWidgetSessions = async (keycloak, widgetId, activeOnly = false) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  let url = `${API_BASE_URL}/widgets/${widgetId}/sessions/`;
+  if (activeOnly) {
+    url += '?active_only=true';
+  }
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch widget sessions');
+  }
+  return await response.json();
+};
+
+export const getWidgetSessionMessages = async (keycloak, widgetId, sessionId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/sessions/${sessionId}/messages/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch session messages');
+  }
+  return await response.json();
+};
+
+export const getWidgetStatistics = async (keycloak, widgetId, startDate = null, endDate = null) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  let url = `${API_BASE_URL}/widgets/${widgetId}/statistics/`;
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+  if (params.toString()) url += `?${params.toString()}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch widget statistics');
+  }
+  return await response.json();
+};
+
+export const getWidgetEmbedCode = async (keycloak, widgetId) => {
+  if (!keycloak || !keycloak.token) {
+    throw new Error('Keycloak not initialized or no token available');
+  }
+  const response = await fetch(`${API_BASE_URL}/widgets/${widgetId}/embed-code/`, {
+    headers: {
+      'Authorization': `Bearer ${keycloak.token}`,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to fetch embed code');
+  }
+  return await response.json();
+};

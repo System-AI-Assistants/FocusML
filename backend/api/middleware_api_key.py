@@ -36,6 +36,7 @@ async def verify_api_key(request: Request, call_next):
         "/benchmarks/",
         "/statistics/",
         "/data-collections/",
+        "/widgets/",  # Widget endpoints use their own token authentication
     ]
     
     # Also skip if path doesn't start with /assistants/ (only assistant endpoints should use API keys)

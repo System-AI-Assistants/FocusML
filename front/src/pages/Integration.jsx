@@ -42,7 +42,12 @@ import {
   ReloadOutlined,
   LockOutlined,
   GlobalOutlined,
-  CopyTwoTone
+  CopyTwoTone,
+  MessageOutlined,
+  SettingOutlined,
+  BgColorsOutlined,
+  HistoryOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import { useKeycloak } from '@react-keycloak/web';
 import {
@@ -73,7 +78,16 @@ import {
   listWhitelistEntries,
   removeWhitelistEntry,
   getAssistants,
-  getAssistantEndpoints
+  getAssistantEndpoints,
+  createWidget,
+  getWidgets,
+  updateWidget,
+  deleteWidget,
+  regenerateWidgetToken,
+  getWidgetSessions,
+  getWidgetSessionMessages,
+  getWidgetStatistics,
+  getWidgetEmbedCode
 } from '../services/api';
 // Date formatting helper
 const formatDate = (dateString) => {
@@ -122,20 +136,38 @@ function Integration() {
   const [testResponse, setTestResponse] = useState(null); // Store test response
   const [testLoading, setTestLoading] = useState(false);
   
+  // Widget states
+  const [widgets, setWidgets] = useState([]);
+  const [selectedWidget, setSelectedWidget] = useState(null);
+  const [widgetStatistics, setWidgetStatistics] = useState(null);
+  const [widgetSessions, setWidgetSessions] = useState([]);
+  const [widgetFullTokens, setWidgetFullTokens] = useState(new Map());
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [sessionMessages, setSessionMessages] = useState([]);
+  const [embedCode, setEmbedCode] = useState(null);
+  const [mainTab, setMainTab] = useState('api'); // 'api' or 'widget'
+  const [customApiUrl, setCustomApiUrl] = useState('');
+  const [customWidgetUrl, setCustomWidgetUrl] = useState('');
+  
   // Modal states
   const [createKeyModalVisible, setCreateKeyModalVisible] = useState(false);
   const [whitelistModalVisible, setWhitelistModalVisible] = useState(false);
   const [codeSnippetModalVisible, setCodeSnippetModalVisible] = useState(false);
   const [playgroundModalVisible, setPlaygroundModalVisible] = useState(false);
+  const [createWidgetModalVisible, setCreateWidgetModalVisible] = useState(false);
+  const [widgetEmbedModalVisible, setWidgetEmbedModalVisible] = useState(false);
+  const [widgetSessionsModalVisible, setWidgetSessionsModalVisible] = useState(false);
   
   // Forms
   const [createKeyForm] = Form.useForm();
   const [whitelistForm] = Form.useForm();
   const [playgroundForm] = Form.useForm();
+  const [createWidgetForm] = Form.useForm();
 
   useEffect(() => {
     fetchAssistants();
     fetchAPIKeys();
+    fetchWidgets();
   }, []);
 
   useEffect(() => {
@@ -144,6 +176,13 @@ function Integration() {
       fetchWhitelistEntries();
     }
   }, [selectedKey]);
+
+  useEffect(() => {
+    if (selectedWidget) {
+      fetchWidgetStats();
+      fetchWidgetSessionsList();
+    }
+  }, [selectedWidget]);
 
   const fetchAssistants = async () => {
     try {
@@ -303,6 +342,155 @@ function Integration() {
       fetchWhitelistEntries();
     } catch (error) {
       message.error(error.message || 'Failed to remove whitelist entry');
+    }
+  };
+
+  // Widget handlers
+  const fetchWidgets = async () => {
+    try {
+      const data = await getWidgets(keycloak);
+      setWidgets(data);
+    } catch (error) {
+      console.error('Failed to fetch widgets:', error);
+    }
+  };
+
+  const fetchWidgetStats = async () => {
+    if (!selectedWidget) return;
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const data = await getWidgetStatistics(
+        keycloak, 
+        selectedWidget.id,
+        thirtyDaysAgo.toISOString(),
+        now.toISOString()
+      );
+      setWidgetStatistics(data);
+    } catch (error) {
+      console.error('Failed to fetch widget statistics:', error);
+    }
+  };
+
+  const fetchWidgetSessionsList = async () => {
+    if (!selectedWidget) return;
+    try {
+      const data = await getWidgetSessions(keycloak, selectedWidget.id);
+      setWidgetSessions(data);
+    } catch (error) {
+      console.error('Failed to fetch widget sessions:', error);
+    }
+  };
+
+  const handleCreateWidget = async (values) => {
+    try {
+      const widgetData = {
+        assistant_id: values.assistant_id,
+        name: values.name,
+        position: values.position || 'bottom-right',
+        primary_color: values.primary_color || '#1890ff',
+        button_size: values.button_size || 60,
+        start_message: values.start_message || null,
+        placeholder_text: values.placeholder_text || 'Type a message...',
+        allow_attachments: values.allow_attachments || false,
+        enable_persistence: values.enable_persistence !== false,
+        window_title: values.window_title || 'Chat with us',
+        allowed_domains: values.allowed_domains ? values.allowed_domains.split(',').map(d => d.trim()).filter(d => d) : [],
+      };
+      const response = await createWidget(keycloak, widgetData);
+      
+      // Store the full token
+      setWidgetFullTokens(prev => new Map(prev).set(response.id, response.full_token));
+      
+      message.success('Widget created successfully!');
+      setCreateWidgetModalVisible(false);
+      createWidgetForm.resetFields();
+      fetchWidgets();
+      
+      // Show the embed code modal
+      setSelectedWidget(response);
+      setEmbedCode(null);
+      handleGetEmbedCode(response.id);
+      
+    } catch (error) {
+      message.error(error.message || 'Failed to create widget');
+    }
+  };
+
+  const handleDeleteWidget = async (widgetId) => {
+    try {
+      await deleteWidget(keycloak, widgetId);
+      message.success('Widget deleted successfully');
+      fetchWidgets();
+      if (selectedWidget?.id === widgetId) {
+        setSelectedWidget(null);
+      }
+    } catch (error) {
+      message.error(error.message || 'Failed to delete widget');
+    }
+  };
+
+  const handleRegenerateWidgetToken = async (widgetId) => {
+    try {
+      const response = await regenerateWidgetToken(keycloak, widgetId);
+      setWidgetFullTokens(prev => new Map(prev).set(response.id, response.full_token));
+      message.success('Widget token regenerated!');
+      fetchWidgets();
+      
+      Modal.info({
+        title: 'New Widget Token',
+        width: 600,
+        content: (
+          <div>
+            <Alert
+              message="Important: Update your website with the new token!"
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+            <Input.Password
+              value={response.full_token}
+              readOnly
+              addonAfter={
+                <CopyOutlined onClick={() => copyToClipboard(response.full_token)} style={{ cursor: 'pointer' }} />
+              }
+            />
+          </div>
+        ),
+      });
+    } catch (error) {
+      message.error(error.message || 'Failed to regenerate token');
+    }
+  };
+
+  const handleGetEmbedCode = async (widgetId) => {
+    try {
+      const data = await getWidgetEmbedCode(keycloak, widgetId);
+      setEmbedCode(data);
+      setWidgetEmbedModalVisible(true);
+    } catch (error) {
+      message.error(error.message || 'Failed to get embed code');
+    }
+  };
+
+  const handleViewSessions = async (widget) => {
+    setSelectedWidget(widget);
+    setWidgetSessionsModalVisible(true);
+    try {
+      const data = await getWidgetSessions(keycloak, widget.id);
+      setWidgetSessions(data);
+    } catch (error) {
+      message.error(error.message || 'Failed to fetch sessions');
+    }
+  };
+
+  const handleViewSessionMessages = async (session) => {
+    setSelectedSession(session);
+    try {
+      const data = await getWidgetSessionMessages(keycloak, selectedWidget.id, session.session_id);
+      setSessionMessages(data);
+    } catch (error) {
+      message.error(error.message || 'Failed to fetch messages');
     }
   };
 
@@ -467,6 +655,101 @@ console.log(data);`;
     },
   ];
 
+  const widgetColumns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Assistant',
+      key: 'assistant',
+      render: (_, record) => {
+        const assistant = assistants.find(a => a.id === record.assistant_id);
+        return assistant ? assistant.name : 'Unknown';
+      },
+    },
+    {
+      title: 'Status',
+      dataIndex: 'is_active',
+      key: 'status',
+      render: (isActive) => (
+        <Tag color={isActive ? 'success' : 'default'}>
+          {isActive ? 'Active' : 'Inactive'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Position',
+      dataIndex: 'position',
+      key: 'position',
+      render: (position) => (
+        <Tag>{position?.replace('-', ' ')}</Tag>
+      ),
+    },
+    {
+      title: 'Sessions',
+      key: 'sessions',
+      render: (_, record) => (
+        <Space>
+          <TeamOutlined />
+          <Text>{record.total_sessions} total / {record.active_sessions} active</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Messages',
+      dataIndex: 'total_messages',
+      key: 'messages',
+    },
+    {
+      title: 'Last Used',
+      dataIndex: 'last_used_at',
+      key: 'last_used',
+      render: (date) => date ? formatDateShort(date) : 'Never',
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      fixed: 'right',
+      width: 280,
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            icon={<CodeOutlined />}
+            onClick={() => handleGetEmbedCode(record.id)}
+          >
+            Embed
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<HistoryOutlined />}
+            onClick={() => handleViewSessions(record)}
+          >
+            Sessions
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => setSelectedWidget(record)}
+          >
+            Details
+          </Button>
+          <Popconfirm
+            title="Delete this widget?"
+            onConfirm={() => handleDeleteWidget(record.id)}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: '24px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -475,30 +758,192 @@ console.log(data);`;
             <ApiOutlined /> Integration Management
           </Title>
           <Paragraph type="secondary">
-            Manage API keys, monitor usage, and configure access controls for your assistants
+            Manage API keys, widgets, and configure access controls for your assistants
           </Paragraph>
         </div>
 
-        <Card>
-          <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
-            <Title level={4}>API Keys</Title>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setCreateKeyModalVisible(true)}
-            >
-              Create API Key
-            </Button>
-          </Space>
+        <Tabs
+          activeKey={mainTab}
+          onChange={setMainTab}
+          type="card"
+          items={[
+            {
+              key: 'api',
+              label: (
+                <span>
+                  <ApiOutlined />
+                  API Keys
+                </span>
+              ),
+              children: (
+                <>
+                  <Card style={{ marginTop: 16 }}>
+                    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <Title level={4}>API Keys</Title>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateKeyModalVisible(true)}
+                      >
+                        Create API Key
+                      </Button>
+                    </Space>
 
-          <Table
-            columns={apiKeyColumns}
-            dataSource={apiKeys}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-          />
-        </Card>
+                    <Table
+                      columns={apiKeyColumns}
+                      dataSource={apiKeys}
+                      rowKey="id"
+                      loading={loading}
+                      pagination={{ pageSize: 10 }}
+                      scroll={{ x: 'max-content' }}
+                    />
+                  </Card>
+                </>
+              ),
+            },
+            {
+              key: 'widget',
+              label: (
+                <span>
+                  <MessageOutlined />
+                  Chat Widget
+                </span>
+              ),
+              children: (
+                <>
+                  <Card style={{ marginTop: 16 }}>
+                    <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <Title level={4}>Chat Widgets</Title>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateWidgetModalVisible(true)}
+                      >
+                        Create Widget
+                      </Button>
+                    </Space>
+
+                    <Table
+                      columns={widgetColumns}
+                      dataSource={widgets}
+                      rowKey="id"
+                      loading={loading}
+                      pagination={{ pageSize: 10 }}
+                      scroll={{ x: 'max-content' }}
+                    />
+                  </Card>
+
+                  {/* Widget Details */}
+                  {selectedWidget && mainTab === 'widget' && (
+                    <Card style={{ marginTop: 16 }}>
+                      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <Title level={4}>{selectedWidget.name} - Details</Title>
+                        <Button onClick={() => setSelectedWidget(null)}>Close</Button>
+                      </Space>
+                      
+                      <Tabs
+                        items={[
+                          {
+                            key: 'overview',
+                            label: 'Overview',
+                            children: (
+                              <Row gutter={16}>
+                                <Col span={6}>
+                                  <Statistic 
+                                    title="Total Sessions" 
+                                    value={widgetStatistics?.total_sessions || 0} 
+                                    prefix={<TeamOutlined />}
+                                  />
+                                </Col>
+                                <Col span={6}>
+                                  <Statistic 
+                                    title="Active Sessions" 
+                                    value={widgetStatistics?.active_sessions || 0} 
+                                    valueStyle={{ color: '#52c41a' }}
+                                  />
+                                </Col>
+                                <Col span={6}>
+                                  <Statistic 
+                                    title="Total Messages" 
+                                    value={widgetStatistics?.total_messages || 0} 
+                                    prefix={<MessageOutlined />}
+                                  />
+                                </Col>
+                                <Col span={6}>
+                                  <Statistic 
+                                    title="Avg Latency" 
+                                    value={widgetStatistics?.avg_latency_ms?.toFixed(0) || 0} 
+                                    suffix="ms"
+                                  />
+                                </Col>
+                              </Row>
+                            ),
+                          },
+                          {
+                            key: 'config',
+                            label: 'Configuration',
+                            children: (
+                              <Descriptions bordered column={2}>
+                                <Descriptions.Item label="Position">{selectedWidget.position}</Descriptions.Item>
+                                <Descriptions.Item label="Primary Color">
+                                  <Space>
+                                    <div style={{ 
+                                      width: 20, 
+                                      height: 20, 
+                                      backgroundColor: selectedWidget.primary_color,
+                                      borderRadius: 4,
+                                      border: '1px solid #d9d9d9'
+                                    }} />
+                                    {selectedWidget.primary_color}
+                                  </Space>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Window Title">{selectedWidget.window_title}</Descriptions.Item>
+                                <Descriptions.Item label="Placeholder">{selectedWidget.placeholder_text}</Descriptions.Item>
+                                <Descriptions.Item label="Start Message">{selectedWidget.start_message || 'None'}</Descriptions.Item>
+                                <Descriptions.Item label="Attachments">{selectedWidget.allow_attachments ? 'Allowed' : 'Disabled'}</Descriptions.Item>
+                                <Descriptions.Item label="Persistence">{selectedWidget.enable_persistence ? 'Enabled' : 'Disabled'}</Descriptions.Item>
+                                <Descriptions.Item label="Session Timeout">{selectedWidget.session_timeout_hours}h</Descriptions.Item>
+                                <Descriptions.Item label="Allowed Domains" span={2}>
+                                  {selectedWidget.allowed_domains?.length > 0 
+                                    ? selectedWidget.allowed_domains.map(d => <Tag key={d}>{d}</Tag>)
+                                    : <Text type="secondary">All domains (not recommended)</Text>
+                                  }
+                                </Descriptions.Item>
+                              </Descriptions>
+                            ),
+                          },
+                          {
+                            key: 'token',
+                            label: 'Token',
+                            children: (
+                              <Space direction="vertical" style={{ width: '100%' }}>
+                                <Alert
+                                  message="Widget Token"
+                                  description="Use this token to authenticate your widget. Keep it secret!"
+                                  type="info"
+                                  showIcon
+                                />
+                                <Space>
+                                  <Text code>{selectedWidget.masked_token}</Text>
+                                  <Popconfirm
+                                    title="Regenerate token? Your current embed code will stop working."
+                                    onConfirm={() => handleRegenerateWidgetToken(selectedWidget.id)}
+                                  >
+                                    <Button icon={<ReloadOutlined />}>Regenerate</Button>
+                                  </Popconfirm>
+                                </Space>
+                              </Space>
+                            ),
+                          },
+                        ]}
+                      />
+                    </Card>
+                  )}
+                </>
+              ),
+            },
+          ]}
+        />
 
         {selectedKey && (
           <Card>
@@ -1011,6 +1456,390 @@ console.log(data);`;
             </Button>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Create Widget Modal */}
+      <Modal
+        title="Create Chat Widget"
+        open={createWidgetModalVisible}
+        onCancel={() => {
+          setCreateWidgetModalVisible(false);
+          createWidgetForm.resetFields();
+        }}
+        footer={null}
+        width={700}
+      >
+        <Form
+          form={createWidgetForm}
+          layout="vertical"
+          onFinish={handleCreateWidget}
+          initialValues={{
+            position: 'bottom-right',
+            primary_color: '#1890ff',
+            button_size: 60,
+            placeholder_text: 'Type a message...',
+            window_title: 'Chat with us',
+            enable_persistence: true,
+            session_timeout_hours: 24,
+          }}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="assistant_id"
+                label="Assistant"
+                rules={[{ required: true, message: 'Please select an assistant' }]}
+              >
+                <Select placeholder="Select an assistant">
+                  {assistants.map((assistant) => (
+                    <Option key={assistant.id} value={assistant.id}>
+                      {assistant.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label="Widget Name"
+                rules={[{ required: true, message: 'Please enter a name' }]}
+              >
+                <Input placeholder="e.g., Support Chat" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider>Appearance</Divider>
+
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="position" label="Button Position">
+                <Select>
+                  <Option value="bottom-right">Bottom Right</Option>
+                  <Option value="bottom-left">Bottom Left</Option>
+                  <Option value="top-right">Top Right</Option>
+                  <Option value="top-left">Top Left</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="primary_color" label="Primary Color">
+                <Input type="color" style={{ width: '100%', height: 32 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="button_size" label="Button Size (px)">
+                <InputNumber min={40} max={100} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="window_title" label="Window Title">
+                <Input placeholder="Chat with us" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="placeholder_text" label="Input Placeholder">
+                <Input placeholder="Type a message..." />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider>Behavior</Divider>
+
+          <Form.Item name="start_message" label="Welcome Message">
+            <TextArea 
+              rows={3} 
+              placeholder="Hello! How can I help you today?" 
+            />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="allow_attachments" label="Allow Attachments" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="enable_persistence" label="Session Persistence" valuePropName="checked">
+                <Switch defaultChecked />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="session_timeout_hours" label="Session Timeout (hours)">
+                <InputNumber min={1} max={720} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider>Security</Divider>
+
+          <Form.Item 
+            name="allowed_domains" 
+            label="Allowed Domains"
+            extra="Comma-separated list of domains where widget can be embedded (e.g., example.com, app.example.com)"
+          >
+            <TextArea 
+              rows={2} 
+              placeholder="example.com, app.example.com" 
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block size="large">
+              Create Widget
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Widget Embed Code Modal */}
+      <Modal
+        title="Embed Widget"
+        open={widgetEmbedModalVisible}
+        onCancel={() => setWidgetEmbedModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setWidgetEmbedModalVisible(false)}>
+            Close
+          </Button>
+        ]}
+        width={700}
+      >
+        {embedCode && (
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            {/* Show token if available */}
+            {selectedWidget && widgetFullTokens.has(selectedWidget.id) ? (
+              <Alert
+                message="Your Widget Token"
+                description={
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Text>This token has been automatically inserted into the embed code below:</Text>
+                    <Input.Password
+                      value={widgetFullTokens.get(selectedWidget.id)}
+                      readOnly
+                      addonAfter={
+                        <CopyOutlined 
+                          onClick={() => copyToClipboard(widgetFullTokens.get(selectedWidget.id))} 
+                          style={{ cursor: 'pointer' }} 
+                        />
+                      }
+                    />
+                  </Space>
+                }
+                type="success"
+                showIcon
+              />
+            ) : (
+              <Alert
+                message="Widget Token Required"
+                description="Replace 'YOUR_WIDGET_TOKEN' in the code below with the token you received when creating this widget."
+                type="warning"
+                showIcon
+              />
+            )}
+            
+            <Alert
+              message="Installation Instructions"
+              description={
+                <ol style={{ paddingLeft: 20, marginBottom: 0 }}>
+                  {embedCode.instructions?.map((instruction, i) => (
+                    <li key={i}>{instruction}</li>
+                  ))}
+                </ol>
+              }
+              type="info"
+              showIcon
+            />
+
+            <Card title="URL Configuration (Optional)" size="small">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Widget Script URL</Text>
+                  <Input
+                    placeholder="e.g., https://yourdomain.com"
+                    value={customWidgetUrl}
+                    onChange={(e) => setCustomWidgetUrl(e.target.value)}
+                    style={{ marginTop: 4 }}
+                  />
+                  <Text type="secondary" style={{ fontSize: 11 }}>Where the widget JS file is hosted</Text>
+                </Col>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>API Base URL</Text>
+                  <Input
+                    placeholder="e.g., https://yourdomain.com/api"
+                    value={customApiUrl}
+                    onChange={(e) => setCustomApiUrl(e.target.value)}
+                    style={{ marginTop: 4 }}
+                  />
+                  <Text type="secondary" style={{ fontSize: 11 }}>Your backend API endpoint</Text>
+                </Col>
+              </Row>
+            </Card>
+            
+            <Card title="Embed Code" size="small">
+              <pre style={{ 
+                background: '#f5f5f5', 
+                padding: 16, 
+                borderRadius: 4, 
+                overflow: 'auto',
+                maxHeight: 200,
+                margin: 0,
+                fontSize: 12
+              }}>
+                {(() => {
+                  let code = embedCode.embed_code;
+                  // Replace token if available
+                  if (selectedWidget && widgetFullTokens.has(selectedWidget.id)) {
+                    code = code.replace('YOUR_WIDGET_TOKEN', widgetFullTokens.get(selectedWidget.id));
+                  }
+                  // Replace URLs if custom values provided
+                  if (customWidgetUrl) {
+                    code = code.replace(/w\.src = '[^']+\/widget\/focusml-chat\.js'/, `w.src = '${customWidgetUrl}/widget/focusml-chat.js'`);
+                  }
+                  if (customApiUrl) {
+                    code = code.replace(/data-api-base', '[^']+'\)/, `data-api-base', '${customApiUrl}')`);
+                  }
+                  return code;
+                })()}
+              </pre>
+              <Button 
+                type="primary" 
+                icon={<CopyOutlined />} 
+                onClick={() => {
+                  let code = embedCode.embed_code;
+                  if (selectedWidget && widgetFullTokens.has(selectedWidget.id)) {
+                    code = code.replace('YOUR_WIDGET_TOKEN', widgetFullTokens.get(selectedWidget.id));
+                  }
+                  if (customWidgetUrl) {
+                    code = code.replace(/w\.src = '[^']+\/widget\/focusml-chat\.js'/, `w.src = '${customWidgetUrl}/widget/focusml-chat.js'`);
+                  }
+                  if (customApiUrl) {
+                    code = code.replace(/data-api-base', '[^']+'\)/, `data-api-base', '${customApiUrl}')`);
+                  }
+                  copyToClipboard(code);
+                }}
+                style={{ marginTop: 16 }}
+              >
+                Copy Code
+              </Button>
+            </Card>
+          </Space>
+        )}
+      </Modal>
+
+      {/* Widget Sessions Modal */}
+      <Modal
+        title={`Sessions - ${selectedWidget?.name || ''}`}
+        open={widgetSessionsModalVisible}
+        onCancel={() => {
+          setWidgetSessionsModalVisible(false);
+          setSelectedSession(null);
+          setSessionMessages([]);
+        }}
+        footer={null}
+        width={900}
+      >
+        <Row gutter={16}>
+          <Col span={selectedSession ? 10 : 24}>
+            <Table
+              dataSource={widgetSessions}
+              rowKey="id"
+              size="small"
+              pagination={{ pageSize: 10 }}
+              columns={[
+                {
+                  title: 'Session',
+                  dataIndex: 'session_id',
+                  key: 'session_id',
+                  render: (id) => <Text code>{id.substring(0, 8)}...</Text>,
+                },
+                {
+                  title: 'Messages',
+                  dataIndex: 'message_count',
+                  key: 'messages',
+                },
+                {
+                  title: 'Status',
+                  dataIndex: 'is_active',
+                  key: 'status',
+                  render: (active) => (
+                    <Badge status={active ? 'success' : 'default'} text={active ? 'Active' : 'Ended'} />
+                  ),
+                },
+                {
+                  title: 'Last Activity',
+                  dataIndex: 'last_activity_at',
+                  key: 'last_activity',
+                  render: (date) => formatDateShort(date),
+                },
+                {
+                  title: '',
+                  key: 'action',
+                  render: (_, record) => (
+                    <Button 
+                      type="link" 
+                      size="small"
+                      onClick={() => handleViewSessionMessages(record)}
+                    >
+                      View
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          </Col>
+          {selectedSession && (
+            <Col span={14}>
+              <Card 
+                title={`Conversation - ${selectedSession.session_id.substring(0, 8)}...`}
+                size="small"
+                extra={
+                  <Button size="small" onClick={() => setSelectedSession(null)}>
+                    Close
+                  </Button>
+                }
+                style={{ maxHeight: 500, overflow: 'auto' }}
+              >
+                {sessionMessages.length === 0 ? (
+                  <Empty description="No messages" />
+                ) : (
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {sessionMessages.map((msg, i) => (
+                      <div 
+                        key={i}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          background: msg.role === 'user' ? '#1890ff' : '#f0f0f0',
+                          color: msg.role === 'user' ? 'white' : 'inherit',
+                          marginLeft: msg.role === 'user' ? 'auto' : 0,
+                          marginRight: msg.role === 'user' ? 0 : 'auto',
+                          maxWidth: '80%',
+                        }}
+                      >
+                        <Text style={{ color: msg.role === 'user' ? 'white' : 'inherit' }}>
+                          {msg.content}
+                        </Text>
+                        <div style={{ 
+                          fontSize: 10, 
+                          opacity: 0.7, 
+                          marginTop: 4,
+                          color: msg.role === 'user' ? 'white' : '#666'
+                        }}>
+                          {formatDateShort(msg.created_at)}
+                          {msg.response_time_ms && ` • ${msg.response_time_ms}ms`}
+                        </div>
+                      </div>
+                    ))}
+                  </Space>
+                )}
+              </Card>
+            </Col>
+          )}
+        </Row>
       </Modal>
     </div>
   );
