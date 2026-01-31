@@ -123,17 +123,17 @@ function Assistants() {
   // Build columns dynamically based on showAll state
   const getColumns = () => {
     const baseColumns = [
-      {
-        title: 'Name',
-        dataIndex: 'name',
-        key: 'name',
-        render: (name, record) => (
-          <Space>
-            <CodeSandboxOutlined style={{ color: 'var(--color-accent)' }} />
-            <span style={{ fontWeight: 500 }}>{name}</span>
-          </Space>
-        ),
-      },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name, record) => (
+        <Space>
+          <CodeSandboxOutlined style={{ color: 'var(--color-accent)' }} />
+          <span style={{ fontWeight: 500 }}>{name}</span>
+        </Space>
+      ),
+    },
     ];
 
     // Add Owner column when showing all (for admins)
@@ -155,84 +155,84 @@ function Assistants() {
     }
 
     baseColumns.push(
-      {
-        title: 'Version',
-        dataIndex: 'version',
-        key: 'version',
-        render: (version) => version || 'N/A',
-      },
-      {
-        title: 'Stage',
-        dataIndex: 'stage',
-        key: 'stage',
-        render: (stage) => (
-          <Tag color={stage === 'production' ? 'green' : stage === 'staging' ? 'blue' : 'orange'}>
-            {stage ? stage.toUpperCase() : 'N/A'}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Model',
-        dataIndex: 'model',
-        key: 'model',
-      },
-      {
-        title: 'Location',
-        dataIndex: 'is_local',
-        key: 'is_local',
-        render: (is_local) => (
-          <Tag color={is_local ? 'purple' : 'cyan'}>
-            {is_local ? 'Local' : 'Cloud'}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Status',
-        dataIndex: 'status',
-        key: 'status',
-        render: (status) => (
-          <Tag color={status === 'running' ? 'green' : status === 'stopped' ? 'red' : status === 'error' ? 'volcano' : 'default'}>
-            {status ? status.toUpperCase() : 'N/A'}
-          </Tag>
-        ),
-      },
-      {
-        title: 'Created',
-        dataIndex: 'create_time',
-        key: 'create_time',
-        render: (create_time) => new Date(create_time).toLocaleDateString(),
-      },
-      {
-        title: 'Actions',
-        key: 'action',
-        render: (_, record) => (
-          <Space>
-            <Button
-              icon={<MessageOutlined />}
-              onClick={() => handleOpenChat(record.id)}
-              title="Open Chat"
-            />
-            <Button
-              icon={<ApiOutlined />}
-              onClick={() => handleViewEndpoints(record)}
-              title="View API Endpoints"
-            />
-            <Button
-              icon={<PlayCircleOutlined />}
-              onClick={() => handleRunAssistant(record.id)}
-              disabled={record.status === 'running'}
-              title="Run Assistant"
-            />
-            <Button
-              icon={<StopOutlined />}
-              onClick={() => handleStopAssistant(record.id)}
-              disabled={record.status !== 'running'}
-              title="Stop Assistant"
-            />
-            <Button icon={<EditOutlined />} disabled title="Edit functionality not implemented" />
-            <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
-          </Space>
-        ),
+    {
+      title: 'Version',
+      dataIndex: 'version',
+      key: 'version',
+      render: (version) => version || 'N/A',
+    },
+    {
+      title: 'Stage',
+      dataIndex: 'stage',
+      key: 'stage',
+      render: (stage) => (
+        <Tag color={stage === 'production' ? 'green' : stage === 'staging' ? 'blue' : 'orange'}>
+          {stage ? stage.toUpperCase() : 'N/A'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Model',
+      dataIndex: 'model',
+      key: 'model',
+    },
+    {
+      title: 'Location',
+      dataIndex: 'is_local',
+      key: 'is_local',
+      render: (is_local) => (
+        <Tag color={is_local ? 'purple' : 'cyan'}>
+          {is_local ? 'Local' : 'Cloud'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'running' ? 'green' : status === 'stopped' ? 'red' : status === 'error' ? 'volcano' : 'default'}>
+          {status ? status.toUpperCase() : 'N/A'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'create_time',
+      key: 'create_time',
+      render: (create_time) => new Date(create_time).toLocaleDateString(),
+    },
+    {
+      title: 'Actions',
+      key: 'action',
+      render: (_, record) => (
+        <Space>
+          <Button
+            icon={<MessageOutlined />}
+            onClick={() => handleOpenChat(record.id)}
+            title="Open Chat"
+          />
+          <Button
+            icon={<ApiOutlined />}
+            onClick={() => handleViewEndpoints(record)}
+            title="View API Endpoints"
+          />
+          <Button
+            icon={<PlayCircleOutlined />}
+            onClick={() => handleRunAssistant(record.id)}
+            disabled={record.status === 'running'}
+            title="Run Assistant"
+          />
+          <Button
+            icon={<StopOutlined />}
+            onClick={() => handleStopAssistant(record.id)}
+            disabled={record.status !== 'running'}
+            title="Stop Assistant"
+          />
+          <Button icon={<EditOutlined />} disabled title="Edit functionality not implemented" />
+          <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
+        </Space>
+      ),
       }
     );
 
@@ -259,9 +259,9 @@ function Assistants() {
               </Space>
             </Tooltip>
           )}
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/assistants/add')}>
-            Add Assistant
-          </Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/assistants/add')}>
+          Add Assistant
+        </Button>
         </Space>
       </div>
       <Card className="modern-card">

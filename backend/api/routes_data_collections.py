@@ -108,7 +108,7 @@ async def upload_file(
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Group not found"
-                )
+            )
 
         # Generate a unique filename
         file_ext = file.filename.rsplit(".", 1)[1].lower()
@@ -206,7 +206,7 @@ def list_collections(
         
         # If admin wants to see all collections
         if show_all and user_is_admin:
-            collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
+        collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
         else:
             # Get user's group IDs
             user_group_ids = get_user_group_ids(db, user_id)
@@ -240,10 +240,10 @@ def list_collections(
         result = []
         for collection in collections:
             collection_dict = {
-                **collection.to_dict(),
+            **collection.to_dict(),
                 "owner_username": owner_usernames.get(collection.owner) if show_all else None,
-                "embeddings_status": collection.embeddings_status,
-                "embeddings_metadata": collection.embeddings_metadata or {}
+            "embeddings_status": collection.embeddings_status,
+            "embeddings_metadata": collection.embeddings_metadata or {}
             }
             # Add embedding model name if available
             if collection.embedding_model:

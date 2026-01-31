@@ -55,9 +55,9 @@ const AddModel = () => {
   const [selectedVisibility, setSelectedVisibility] = useState('private');
   const [dataCollections, setDataCollections] = useState([]);
   const [dataSourceMode, setDataSourceMode] = useState('existing');
-  const [initializationModal, setInitializationModal] = useState(false);
-  const [initializingAssistant, setInitializingAssistant] = useState(null);
-  const [initializationStatus, setInitializationStatus] = useState('initializing');
+    const [initializationModal, setInitializationModal] = useState(false);
+    const [initializingAssistant, setInitializingAssistant] = useState(null);
+    const [initializationStatus, setInitializationStatus] = useState('initializing');
 
   const fetchModels = useCallback(async () => {
     if (initialized && keycloak.authenticated) {
@@ -104,38 +104,38 @@ const AddModel = () => {
     fetchDataCollections();
   }, [fetchModels, fetchGroups, fetchDataCollections]);
 
-  const pollInitializationStatus = useCallback(async (assistantId) => {
-    if (!keycloak.authenticated || !assistantId) return;
+    const pollInitializationStatus = useCallback(async (assistantId) => {
+        if (!keycloak.authenticated || !assistantId) return;
 
-    try {
-      const status = await getAssistantStatus(keycloak, assistantId);
-      setInitializationStatus(status.status);
+        try {
+            const status = await getAssistantStatus(keycloak, assistantId);
+            setInitializationStatus(status.status);
 
-      if (status.is_ready) {
-        setInitializationStatus('running');
-        message.success('Assistant initialized successfully!');
-        setTimeout(() => {
-          setInitializationModal(false);
-          navigate('/assistants');
-        }, 2000);
-        return;
-      }
+            if (status.is_ready) {
+                setInitializationStatus('running');
+                message.success('Assistant initialized successfully!');
+                setTimeout(() => {
+                    setInitializationModal(false);
+                    navigate('/assistants');
+                }, 2000);
+                return;
+            }
 
-      if (status.status === 'failed') {
-        setInitializationStatus('failed');
-        message.error('Assistant initialization failed');
-        return;
-      }
+            if (status.status === 'failed') {
+                setInitializationStatus('failed');
+                message.error('Assistant initialization failed');
+                return;
+            }
 
-      if (status.status === 'initializing') {
-        setTimeout(() => pollInitializationStatus(assistantId), 2000);
-      }
-    } catch (error) {
-      console.error('Error polling status:', error);
-      setInitializationStatus('failed');
-      message.error('Failed to check initialization status');
-    }
-  }, [keycloak, navigate]);
+            if (status.status === 'initializing') {
+                setTimeout(() => pollInitializationStatus(assistantId), 2000);
+            }
+        } catch (error) {
+            console.error('Error polling status:', error);
+            setInitializationStatus('failed');
+            message.error('Failed to check initialization status');
+        }
+    }, [keycloak, navigate]);
 
   const allModels = modelFamilies.flatMap(family => family.models.map(model => ({
     ...model,
@@ -183,9 +183,9 @@ const AddModel = () => {
       };
 
       const response = await createAssistant(keycloak, payload);
-      setInitializingAssistant(response);
-      setInitializationStatus('initializing');
-      setInitializationModal(true);
+        setInitializingAssistant(response);
+        setInitializationStatus('initializing');
+        setInitializationModal(true);
       setSelectedModel(null);
       setSelectedExecutionType(null);
       setFileList([]);
@@ -198,51 +198,51 @@ const AddModel = () => {
     }
   };
 
-  const handleModalCancel = () => {
-    setInitializationModal(false);
-    navigate('/assistants');
-  };
+    const handleModalCancel = () => {
+        setInitializationModal(false);
+        navigate('/assistants');
+    };
 
-  const renderInitializationContent = () => {
-    switch (initializationStatus) {
-      case 'initializing':
-        return (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <Spin size="large" />
-            <div style={{ marginTop: '16px' }}>
-              <Title level={4}>Initializing Assistant</Title>
-              <p>Setting up your assistant "{initializingAssistant?.name}"...</p>
-              <p>This may take a few minutes as we prepare the ML model.</p>
-              <Progress percent={50} status="active" />
-            </div>
-          </div>
-        );
-      case 'running':
-        return (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <CheckCircleOutlined style={{ fontSize: '48px', color: '#52c41a' }} />
-            <div style={{ marginTop: '16px' }}>
-              <Title level={4}>Assistant Ready!</Title>
-              <p>"{initializingAssistant?.name}" has been successfully initialized.</p>
-              <p>Redirecting to assistants page...</p>
-            </div>
-          </div>
-        );
-      case 'failed':
-        return (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <ExclamationCircleOutlined style={{ fontSize: '48px', color: '#ff4d4f' }} />
-            <div style={{ marginTop: '16px' }}>
-              <Title level={4}>Initialization Failed</Title>
-              <p>Failed to initialize assistant "{initializingAssistant?.name}".</p>
-              <p>Please try again or contact support if the issue persists.</p>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+    const renderInitializationContent = () => {
+        switch (initializationStatus) {
+            case 'initializing':
+                return (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <Spin size="large" />
+                        <div style={{ marginTop: '16px' }}>
+                            <Title level={4}>Initializing Assistant</Title>
+                            <p>Setting up your assistant "{initializingAssistant?.name}"...</p>
+                            <p>This may take a few minutes as we prepare the ML model.</p>
+                            <Progress percent={50} status="active" />
+                        </div>
+                    </div>
+                );
+            case 'running':
+                return (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <CheckCircleOutlined style={{ fontSize: '48px', color: '#52c41a' }} />
+                        <div style={{ marginTop: '16px' }}>
+                            <Title level={4}>Assistant Ready!</Title>
+                            <p>"{initializingAssistant?.name}" has been successfully initialized.</p>
+                            <p>Redirecting to assistants page...</p>
+                        </div>
+                    </div>
+                );
+            case 'failed':
+                return (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <ExclamationCircleOutlined style={{ fontSize: '48px', color: '#ff4d4f' }} />
+                        <div style={{ marginTop: '16px' }}>
+                            <Title level={4}>Initialization Failed</Title>
+                            <p>Failed to initialize assistant "{initializingAssistant?.name}".</p>
+                            <p>Please try again or contact support if the issue persists.</p>
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
 
   return (
     <>
@@ -464,20 +464,20 @@ const AddModel = () => {
 
           {dataSourceMode === 'upload' && (
             <Form.Item label="Upload Data File" name="dataFile">
-              <Dragger
-                fileList={fileList}
-                multiple={false}
-                beforeUpload={() => false}
-                onChange={handleUploadChange}
+            <Dragger
+              fileList={fileList}
+              multiple={false}
+              beforeUpload={() => false}
+              onChange={handleUploadChange}
                 accept=".csv,.xlsx,.xls"
-              >
-                <p className="ant-upload-drag-icon">
-                  <InboxOutlined />
-                </p>
+            >
+              <p className="ant-upload-drag-icon">
+                <InboxOutlined />
+              </p>
                 <p className="ant-upload-text">Click or drag file to upload</p>
                 <p className="ant-upload-hint">Supports CSV and Excel files (.csv, .xlsx)</p>
-              </Dragger>
-            </Form.Item>
+            </Dragger>
+          </Form.Item>
           )}
 
 
@@ -505,25 +505,25 @@ const AddModel = () => {
         </Form>
       </div>
 
-      <Modal
-        title="Assistant Initialization"
-        open={initializationModal}
-        onCancel={handleModalCancel}
-        footer={
-          initializationStatus === 'failed' || initializationStatus === 'running'
-            ? [
-                <Button key="ok" type="primary" onClick={handleModalCancel}>
-                  {initializationStatus === 'running' ? 'Go to Assistants' : 'Close'}
-                </Button>
-              ]
-            : null
-        }
-        closable={initializationStatus !== 'initializing'}
-        maskClosable={false}
-        width={500}
-      >
-        {renderInitializationContent()}
-      </Modal>
+        <Modal
+            title="Assistant Initialization"
+            open={initializationModal}
+            onCancel={handleModalCancel}
+            footer={
+                initializationStatus === 'failed' || initializationStatus === 'running'
+                    ? [
+                        <Button key="ok" type="primary" onClick={handleModalCancel}>
+                            {initializationStatus === 'running' ? 'Go to Assistants' : 'Close'}
+                        </Button>
+                    ]
+                    : null
+            }
+            closable={initializationStatus !== 'initializing'}
+            maskClosable={false}
+            width={500}
+        >
+            {renderInitializationContent()}
+        </Modal>
     </>
   );
 };

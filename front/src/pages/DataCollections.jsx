@@ -407,46 +407,46 @@ const DataCollections = () => {
   // Table columns definition
   const getColumns = () => {
     const baseColumns = [
-      {
-        title: 'Name',
-        dataIndex: 'name',
-        key: 'name',
-        render: (text, record) => (
-          <div className="file-cell">
-            <span className="file-icon">
-              {getFileTypeIcon(record.file_type || record.type)}
-            </span>
-            <span className="file-name">{text}</span>
-          </div>
-        ),
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <div className="file-cell">
+          <span className="file-icon">
+            {getFileTypeIcon(record.file_type || record.type)}
+          </span>
+          <span className="file-name">{text}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'file_type',
+      key: 'type',
+      render: (type) => type ? type.toUpperCase() : 'Unknown',
+    },
+    {
+      title: 'Size',
+      key: 'size',
+      render: (_, record) => {
+        if (record.file_type === 'url') return 'N/A';
+        if (record.file_type === 'database') return 'N/A';
+        return record.size ? formatFileSize(record.size) : '-';
       },
-      {
-        title: 'Type',
-        dataIndex: 'file_type',
-        key: 'type',
-        render: (type) => type ? type.toUpperCase() : 'Unknown',
-      },
-      {
-        title: 'Size',
-        key: 'size',
-        render: (_, record) => {
-          if (record.file_type === 'url') return 'N/A';
-          if (record.file_type === 'database') return 'N/A';
-          return record.size ? formatFileSize(record.size) : '-';
-        },
-      },
-      {
-        title: 'Records',
-        dataIndex: 'row_count',
-        key: 'records',
-        render: (count) => count ? count.toLocaleString() : '-',
-      },
-      {
-        title: 'Uploaded',
-        dataIndex: 'created_at',
-        key: 'uploadedAt',
-        render: (date) => date ? new Date(date).toLocaleString() : '-',
-      },
+    },
+    {
+      title: 'Records',
+      dataIndex: 'row_count',
+      key: 'records',
+      render: (count) => count ? count.toLocaleString() : '-',
+    },
+    {
+      title: 'Uploaded',
+      dataIndex: 'created_at',
+      key: 'uploadedAt',
+      render: (date) => date ? new Date(date).toLocaleString() : '-',
+    },
     ];
     
     // Add Owner column for admins viewing all collections
@@ -464,84 +464,84 @@ const DataCollections = () => {
     }
     
     baseColumns.push(
-      {
-        title: 'Status',
-        key: 'status',
-        render: () => (
-          <Tag color="green">Processed</Tag>
-        ),
-      },
-      {
-        title: 'Embedding Status',
-        key: 'embedding_status',
-        width: 200,
-        render: (_, record) => {
-          const status = record.embeddings_status || 'pending';
-          const isProcessing = status === 'processing' || status === 'pending';
-          
-          return (
-            <Space>
-              <Tag 
-                color={
-                  status === 'completed' ? 'success' : 
-                  status === 'failed' ? 'error' : 'processing'
-                }
-                icon={
-                  status === 'completed' ? <CheckCircleOutlined /> :
-                  status === 'failed' ? <CloseCircleOutlined /> : <ClockCircleOutlined />
-                }
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Tag>
-              {isProcessing && (
-                <Button 
-                  type="text" 
-                  size="small" 
-                  icon={<ReloadOutlined />} 
-                  onClick={() => checkEmbeddingStatus(record.id)}
-                  loading={refreshingStatusId === record.id}
-                />
-              )}
-            </Space>
-          );
-        },
-      },
-      {
-        title: 'Embedding Model',
-        key: 'embedding_model',
-        width: 200,
-        render: (_, record) => {
-          const modelName = record.embedding_model_name || 
-                           (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
-                           'N/A';
-          return <Tag color="blue">{modelName}</Tag>;
-        },
-      },
-      {
-        title: 'Actions',
-        key: 'actions',
-        width: 150,
-        fixed: 'right',
-        render: (_, record) => (
-          <Space size="middle">
-            <Button 
-              icon={<FileSearchOutlined />} 
-              onClick={() => handleView(record)}
-              title="View"
-            />
-            <Button 
-              icon={<DownloadOutlined />} 
-              onClick={() => handleDownload(record)}
-              title="Download"
-            />
-            <Button 
-              danger 
-              icon={<DeleteOutlined />} 
-              onClick={() => handleDelete(record)}
-              title="Delete"
-            />
+    {
+      title: 'Status',
+      key: 'status',
+      render: () => (
+        <Tag color="green">Processed</Tag>
+      ),
+    },
+    {
+      title: 'Embedding Status',
+      key: 'embedding_status',
+      width: 200,
+      render: (_, record) => {
+        const status = record.embeddings_status || 'pending';
+        const isProcessing = status === 'processing' || status === 'pending';
+        
+        return (
+          <Space>
+            <Tag 
+              color={
+                status === 'completed' ? 'success' : 
+                status === 'failed' ? 'error' : 'processing'
+              }
+              icon={
+                status === 'completed' ? <CheckCircleOutlined /> :
+                status === 'failed' ? <CloseCircleOutlined /> : <ClockCircleOutlined />
+              }
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Tag>
+            {isProcessing && (
+              <Button 
+                type="text" 
+                size="small" 
+                icon={<ReloadOutlined />} 
+                onClick={() => checkEmbeddingStatus(record.id)}
+                loading={refreshingStatusId === record.id}
+              />
+            )}
           </Space>
-        ),
+        );
+      },
+    },
+    {
+      title: 'Embedding Model',
+      key: 'embedding_model',
+      width: 200,
+      render: (_, record) => {
+        const modelName = record.embedding_model_name || 
+                         (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
+                         'N/A';
+        return <Tag color="blue">{modelName}</Tag>;
+      },
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 150,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size="middle">
+          <Button 
+            icon={<FileSearchOutlined />} 
+            onClick={() => handleView(record)}
+            title="View"
+          />
+          <Button 
+            icon={<DownloadOutlined />} 
+            onClick={() => handleDownload(record)}
+            title="Download"
+          />
+          <Button 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => handleDelete(record)}
+            title="Delete"
+          />
+        </Space>
+      ),
       }
     );
     
@@ -781,7 +781,7 @@ const DataCollections = () => {
 
   useEffect(() => {
     if (keycloak && keycloak.authenticated) {
-      refreshCollections();
+    refreshCollections();
     }
   }, [keycloak, showAll, isAdmin]);
 

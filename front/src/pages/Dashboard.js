@@ -269,12 +269,12 @@ function Dashboard() {
         </Col>
 
         {isAdmin && (
-          <Col xs={24} sm={12} lg={6}>
-            <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
-              <div className="stat-title">Total Users</div>
-              <div className="stat-value" style={{color: '#722ed1'}}>
-                {formatNumber(statistics?.user_stats?.total_users)}
-              </div>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="modern-card" style={{textAlign: 'left', padding: '0px'}}>
+            <div className="stat-title">Total Users</div>
+            <div className="stat-value" style={{color: '#722ed1'}}>
+              {formatNumber(statistics?.user_stats?.total_users)}
+            </div>
 
               {statistics?.user_stats?.change_percentage !== null && (
                 <div style={{marginTop: '8px'}}>
@@ -284,8 +284,8 @@ function Dashboard() {
                   </Text>
                 </div>
               )}
-            </Card>
-          </Col>
+          </Card>
+        </Col>
         )}
 
         <Col xs={24} sm={12} lg={isAdmin ? 6 : 8}>

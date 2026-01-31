@@ -320,7 +320,7 @@ def get_statistics(
 
             # Get user statistics (only for admins)
             if user_is_admin:
-                user_stats = get_user_statistics(period)
+            user_stats = get_user_statistics(period)
             else:
                 # For non-admin users, don't show user stats
                 user_stats = UserStats(total_users=None, change_percentage=None)
