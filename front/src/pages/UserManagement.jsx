@@ -718,7 +718,12 @@ const UserManagement = () => {
                     selectedRowKeys: selectedUsers,
                     onChange: setSelectedUsers,
                   }}
-                  pagination={{ pageSize: 10, showSizeChanger: true }}
+                  pagination={{ 
+                    pageSize: 10, 
+                    showSizeChanger: true,
+                    pageSizeOptions: [10, 20, 50, 100],
+                    locale: { items_per_page: '' }
+                  }}
                 />
               </Card>
             ),
@@ -754,7 +759,12 @@ const UserManagement = () => {
                   columns={groupColumns}
                   rowKey="id"
                   scroll={{ x: 'max-content' }}
-                  pagination={{ pageSize: 10, showSizeChanger: true }}
+                  pagination={{ 
+                    pageSize: 10, 
+                    showSizeChanger: true,
+                    pageSizeOptions: [10, 20, 50, 100],
+                    locale: { items_per_page: '' }
+                  }}
                 />
               </Card>
             ),
