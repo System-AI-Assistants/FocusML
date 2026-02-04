@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { 
   Button, 
   Card, 
@@ -18,7 +17,9 @@ import {
   Row,
   Col,
   Select,
-  Switch
+  InputNumber,
+  Collapse,
+  Divider
 } from 'antd';
 import { 
   // File Icons
@@ -46,17 +47,24 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   ReloadOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
+  SettingOutlined,
+  ScissorOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKeycloak } from '@react-keycloak/web';
-import { getEmbeddingModels } from '../services/api';
 import './DataCollections.css';
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
+const { Option } = Select;
+const { Panel } = Collapse;
 
 const API_BASE_URL = 'http://localhost:8000';
+
+// Document file extensions that support chunking
+const DOCUMENT_EXTENSIONS = ['txt', 'pdf', 'docx'];
+const TABULAR_EXTENSIONS = ['csv', 'xlsx', 'xls'];
 
 
 const fileTypeIcons = {
@@ -201,12 +209,16 @@ const DataCollections = () => {
   const [inputMode, setInputMode] = useState(null); // 'url' or 'database'
   const [inputValue, setInputValue] = useState('');
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewData, setPreviewData] = useState({ columns: [], rows: [] });
+  const [previewData, setPreviewData] = useState({ columns: [], rows: [], content_type: 'tabular' });
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [embeddingModels, setEmbeddingModels] = useState([]);
-  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  
+  // Chunking state
+  const [chunkingMethods, setChunkingMethods] = useState([]);
+  const [selectedChunkingMethod, setSelectedChunkingMethod] = useState('recursive');
+  const [chunkSize, setChunkSize] = useState(512);
+  const [chunkOverlap, setChunkOverlap] = useState(50);
+  const [showChunkingOptions, setShowChunkingOptions] = useState(false);
+  
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const animationRef = useRef(null);
@@ -214,18 +226,35 @@ const DataCollections = () => {
     'Analyzing content...',
     'Extracting data...',
     'Processing structure...',
-    'Optimizing for analysis...',
+    'Chunking document...',
+    'Generating embeddings...',
     'Almost there...'
   ];
   const [textIndex, setTextIndex] = useState(0);
 
-  // Check if user is platform admin
-  useEffect(() => {
-    if (keycloak?.tokenParsed?.realm_access?.roles) {
-      const roles = keycloak.tokenParsed.realm_access.roles;
-      setIsAdmin(roles.includes('platform_admin'));
+  // Check if file is a document type that supports chunking
+  const isDocumentFile = (filename) => {
+    if (!filename) return false;
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return DOCUMENT_EXTENSIONS.includes(ext);
+  };
+
+  // Fetch available chunking methods
+  const fetchChunkingMethods = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/data-collections/chunking-methods/`, {
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`,
+        },
+      });
+      if (response.ok) {
+        const methods = await response.json();
+        setChunkingMethods(methods);
+      }
+    } catch (error) {
+      console.error('Failed to fetch chunking methods:', error);
     }
-  }, [keycloak]);
+  };
 
   // Format file size to human-readable format
   const formatFileSize = (bytes) => {
@@ -239,7 +268,6 @@ const DataCollections = () => {
   // Handle file removal
   const handleRemove = () => {
     setFile(null);
-    setSelectedEmbeddingModel(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -262,10 +290,25 @@ const DataCollections = () => {
       }
 
       const data = await response.json();
-      setPreviewData({
-        columns: data.columns || [],
-        rows: data.rows || []
-      });
+      
+      // Handle both document and tabular previews
+      if (data.content_type === 'document') {
+        setPreviewData({
+          content_type: 'document',
+          file_type: data.file_type,
+          chunking_method: data.chunking_method,
+          document_metadata: data.document_metadata,
+          chunks: data.chunks || [],
+          total_chunks: data.total_chunks,
+          preview_count: data.preview_count
+        });
+      } else {
+        setPreviewData({
+          content_type: 'tabular',
+          columns: data.columns || [],
+          rows: data.rows || []
+        });
+      }
       
     } catch (error) {
       console.error('Failed to load preview:', error);
@@ -405,8 +448,7 @@ const DataCollections = () => {
   };
 
   // Table columns definition
-  const getColumns = () => {
-    const baseColumns = [
+  const columns = [
     {
       title: 'Name',
       dataIndex: 'name',
@@ -424,7 +466,20 @@ const DataCollections = () => {
       title: 'Type',
       dataIndex: 'file_type',
       key: 'type',
-      render: (type) => type ? type.toUpperCase() : 'Unknown',
+      render: (type, record) => (
+        <Space size="small">
+          <Tag color={record.content_type === 'document' ? 'blue' : 'green'}>
+            {type ? type.toUpperCase() : 'Unknown'}
+          </Tag>
+          {record.content_type === 'document' && (
+            <Tooltip title={`Chunking: ${record.chunking_method || 'default'}`}>
+              <Tag color="purple" style={{ fontSize: '11px' }}>
+                <ScissorOutlined />
+              </Tag>
+            </Tooltip>
+          )}
+        </Space>
+      ),
     },
     {
       title: 'Size',
@@ -439,7 +494,11 @@ const DataCollections = () => {
       title: 'Records',
       dataIndex: 'row_count',
       key: 'records',
-      render: (count) => count ? count.toLocaleString() : '-',
+      render: (count, record) => {
+        if (!count) return '-';
+        const label = record.content_type === 'document' ? 'chunks' : 'rows';
+        return `${count.toLocaleString()} ${label}`;
+      },
     },
     {
       title: 'Uploaded',
@@ -447,23 +506,6 @@ const DataCollections = () => {
       key: 'uploadedAt',
       render: (date) => date ? new Date(date).toLocaleString() : '-',
     },
-    ];
-    
-    // Add Owner column for admins viewing all collections
-    if (showAll && isAdmin) {
-      baseColumns.push({
-        title: 'Owner',
-        dataIndex: 'owner_username',
-        key: 'owner',
-        render: (text, record) => text ? (
-          <Link to={`/users/${record.owner}/profile`} style={{ color: 'var(--color-accent)' }}>
-            {text}
-          </Link>
-        ) : <Text type="secondary">{record.owner ? record.owner.substring(0, 8) + '...' : '-'}</Text>,
-      });
-    }
-    
-    baseColumns.push(
     {
       title: 'Status',
       key: 'status',
@@ -507,21 +549,9 @@ const DataCollections = () => {
       },
     },
     {
-      title: 'Embedding Model',
-      key: 'embedding_model',
-      width: 200,
-      render: (_, record) => {
-        const modelName = record.embedding_model_name || 
-                         (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
-                         'N/A';
-        return <Tag color="blue">{modelName}</Tag>;
-      },
-    },
-    {
       title: 'Actions',
       key: 'actions',
       width: 150,
-      fixed: 'right',
       render: (_, record) => (
         <Space size="middle">
           <Button 
@@ -542,13 +572,8 @@ const DataCollections = () => {
           />
         </Space>
       ),
-      }
-    );
-    
-    return baseColumns;
-  };
-
-  const columns = getColumns();
+    },
+  ];
 
   // Focus input when mode changes
   useEffect(() => {
@@ -634,11 +659,6 @@ const DataCollections = () => {
       return;
     }
 
-    if (!selectedEmbeddingModel) {
-      message.error('Please select an embedding model!');
-      return;
-    }
-
     setUploading(true);
     setIsAnimating(true);
 
@@ -655,13 +675,20 @@ const DataCollections = () => {
       );
       
       formData.append('file', fileToUpload, file.name);
-      formData.append('embedding_model_id', selectedEmbeddingModel.toString());
+
+      // Add chunking parameters for document files
+      if (isDocumentFile(file.name)) {
+        formData.append('chunking_method', selectedChunkingMethod);
+        formData.append('chunk_size', chunkSize.toString());
+        formData.append('chunk_overlap', chunkOverlap.toString());
+      }
 
       console.log('Sending file:', {
         name: file.name,
         size: file.size,
         type: file.type,
-        embedding_model_id: selectedEmbeddingModel,
+        isDocument: isDocumentFile(file.name),
+        chunkingMethod: selectedChunkingMethod,
         isFile: fileToUpload instanceof File
       });
 
@@ -684,7 +711,10 @@ const DataCollections = () => {
       message.success('File uploaded successfully!');
       refreshCollections();
       setFile(null);
-      setSelectedEmbeddingModel(null);
+      // Reset chunking options
+      setSelectedChunkingMethod('recursive');
+      setChunkSize(512);
+      setChunkOverlap(50);
     } catch (error) {
       console.error('Upload failed:', error);
       message.error(error.message || 'Upload failed. Please try again.');
@@ -697,12 +727,7 @@ const DataCollections = () => {
   const refreshCollections = async () => {
     setTableLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (showAll && isAdmin) {
-        params.append('show_all', 'true');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/data-collections/collections/?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/data-collections/collections/`, {
         headers: {
           'Authorization': `Bearer ${keycloak.token}`,
         },
@@ -780,30 +805,18 @@ const DataCollections = () => {
   };
 
   useEffect(() => {
-    if (keycloak && keycloak.authenticated) {
     refreshCollections();
-    }
-  }, [keycloak, showAll, isAdmin]);
+    fetchChunkingMethods();
+  }, []);
 
+  // Update chunking options visibility when file changes
   useEffect(() => {
-    // Fetch embedding models
-    const fetchEmbeddingModels = async () => {
-      try {
-        const models = await getEmbeddingModels(keycloak);
-        setEmbeddingModels(models);
-        // Auto-select first model if available
-        if (models.length > 0 && !selectedEmbeddingModel) {
-          setSelectedEmbeddingModel(models[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to fetch embedding models:', error);
-        message.error('Failed to load embedding models');
-      }
-    };
-    if (keycloak && keycloak.authenticated) {
-      fetchEmbeddingModels();
+    if (file && isDocumentFile(file.name)) {
+      setShowChunkingOptions(true);
+    } else {
+      setShowChunkingOptions(false);
     }
-  }, [keycloak]);
+  }, [file]);
 
   return (
     <div className="data-collections-container">
@@ -902,26 +915,69 @@ const DataCollections = () => {
                 </div>
               )}
 
-              {!uploading && (
-                <div style={{ width: '100%', marginTop: 16 }}>
-                  <div style={{ marginBottom: 12 }}>
-                    <Text strong>Select Embedding Model:</Text>
+              {/* Chunking Options for Document Files */}
+              {showChunkingOptions && !uploading && (
+                <div className="chunking-options" onClick={(e) => e.stopPropagation()}>
+                  <div className="chunking-header">
+                    <ScissorOutlined />
+                    <span>Text Chunking Options</span>
                   </div>
-                  <Select
-                    style={{ width: '100%', marginBottom: 16 }}
-                    placeholder="Choose an embedding model"
-                    value={selectedEmbeddingModel}
-                    onChange={setSelectedEmbeddingModel}
-                    size="large"
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                    options={embeddingModels.map(model => ({
-                      value: model.id,
-                      label: `${model.name}${model.family_name ? ` (${model.family_name})` : ''}`
-                    }))}
-                  />
+                  
+                  <div className="chunking-form">
+                    <div className="chunking-field">
+                      <label>Chunking Method</label>
+                      <Select
+                        value={selectedChunkingMethod}
+                        onChange={setSelectedChunkingMethod}
+                        style={{ width: '100%' }}
+                        size="middle"
+                      >
+                        {chunkingMethods.map(method => (
+                          <Option key={method.id} value={method.id}>
+                            <div className="chunking-option">
+                              <span className="chunking-option-name">{method.name}</span>
+                            </div>
+                          </Option>
+                        ))}
+                      </Select>
+                      {chunkingMethods.find(m => m.id === selectedChunkingMethod)?.description && (
+                        <Text type="secondary" className="chunking-description">
+                          {chunkingMethods.find(m => m.id === selectedChunkingMethod)?.description}
+                        </Text>
+                      )}
+                    </div>
+
+                    {(selectedChunkingMethod === 'fixed_size' || selectedChunkingMethod === 'recursive') && (
+                      <div className="chunking-field-row">
+                        <div className="chunking-field">
+                          <label>Chunk Size</label>
+                          <InputNumber
+                            min={100}
+                            max={4000}
+                            value={chunkSize}
+                            onChange={setChunkSize}
+                            style={{ width: '100%' }}
+                            addonAfter="chars"
+                          />
+                        </div>
+                        <div className="chunking-field">
+                          <label>Overlap</label>
+                          <InputNumber
+                            min={0}
+                            max={500}
+                            value={chunkOverlap}
+                            onChange={setChunkOverlap}
+                            style={{ width: '100%' }}
+                            addonAfter="chars"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!uploading && (
                 <Button
                   type="primary"
                   size="large"
@@ -931,12 +987,9 @@ const DataCollections = () => {
                     handleUpload();
                   }}
                   icon={<CloudUploadOutlined />}
-                    disabled={!selectedEmbeddingModel}
-                    block
                 >
                   Process File
                 </Button>
-                </div>
               )}
             </div>
           )}
@@ -979,18 +1032,16 @@ const DataCollections = () => {
       <Card 
         className="collections-card"
         title={
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <span>{showAll && isAdmin ? 'All Data Collections' : 'My Data Collections'}</span>
-            {isAdmin && (
-              <Space>
-                <Text type="secondary" style={{ fontSize: 13 }}>Show All</Text>
-                <Switch 
-                  checked={showAll} 
-                  onChange={setShowAll} 
-                  size="small"
-                />
-              </Space>
-            )}
+          <div className="card-header">
+            <span>My Data Collections</span>
+            {/* <Button
+              type="text"
+              icon={<ReloadOutlined />}
+              onClick={refreshCollections}
+              loading={tableLoading}
+            >
+              Refresh
+            </Button> */}
           </div>
         }
         bordered={false}
@@ -1001,7 +1052,6 @@ const DataCollections = () => {
           rowKey="id"
           loading={tableLoading}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <div className="empty-table">
@@ -1017,7 +1067,7 @@ const DataCollections = () => {
         
         {/* Preview Modal */}
         <Modal
-          title="Data Preview"
+          title={previewData.content_type === 'document' ? 'Document Chunks Preview' : 'Data Preview'}
           open={previewVisible}
           onCancel={() => setPreviewVisible(false)}
           footer={[
@@ -1032,15 +1082,54 @@ const DataCollections = () => {
               <div className="ant-spin ant-spin-lg" />
               <p>Loading preview data...</p>
             </div>
+          ) : previewData.content_type === 'document' ? (
+            // Document preview with chunks
+            <div className="document-preview">
+              <div className="document-meta">
+                <Space size="middle" wrap>
+                  <Tag color="blue">{previewData.file_type?.toUpperCase()}</Tag>
+                  <Tag color="purple">
+                    <ScissorOutlined /> {previewData.chunking_method}
+                  </Tag>
+                  <Text type="secondary">
+                    Showing {previewData.preview_count} of {previewData.total_chunks} chunks
+                  </Text>
+                </Space>
+                {previewData.document_metadata && (
+                  <div className="document-stats">
+                    {previewData.document_metadata.word_count && (
+                      <Text type="secondary">{previewData.document_metadata.word_count.toLocaleString()} words</Text>
+                    )}
+                    {previewData.document_metadata.page_count && (
+                      <Text type="secondary">{previewData.document_metadata.page_count} pages</Text>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="chunks-list">
+                {previewData.chunks?.map((chunk, index) => (
+                  <div key={index} className="chunk-item">
+                    <div className="chunk-header">
+                      <Tag color="geekblue">Chunk {chunk.index + 1}</Tag>
+                      <Text type="secondary">{chunk.full_length} chars</Text>
+                    </div>
+                    <div className="chunk-content">
+                      {chunk.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
+            // Tabular preview
             <Table 
               dataSource={previewData.rows}
-              columns={previewData.columns.map(column => ({
+              columns={previewData.columns?.map(column => ({
                 title: column,
                 dataIndex: column,
                 key: column,
                 ellipsis: true,
-              }))}
+              })) || []}
               pagination={{ pageSize: 5 }}
               size="small"
               scroll={{ x: 'max-content' }}

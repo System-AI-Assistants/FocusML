@@ -503,3 +503,164 @@
   transform: translateY(-10px);
   transition: all 0.3s ease;
 }
+
+/* Chunking Options Styles */
+.chunking-options {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%);
+  border: 1px solid #d6e4ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  animation: fadeIn 0.3s ease;
+}
+
+.chunking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #1890ff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.chunking-header .anticon {
+  font-size: 16px;
+}
+
+.chunking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chunking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chunking-field label {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.chunking-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.chunking-description {
+  font-size: 0.8rem;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.chunking-option {
+  display: flex;
+  flex-direction: column;
+}
+
+.chunking-option-name {
+  font-weight: 500;
+}
+
+/* Document Preview Styles */
+.document-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.document-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.document-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.chunks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.chunk-item {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.chunk-item:hover {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.chunk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.chunk-content {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Scrollbar styles for chunks list */
+.chunks-list::-webkit-scrollbar,
+.chunk-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chunks-list::-webkit-scrollbar-track,
+.chunk-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chunks-list::-webkit-scrollbar-thumb,
+.chunk-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.chunks-list::-webkit-scrollbar-thumb:hover,
+.chunk-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive adjustments for chunking options */
+@media (max-width: 576px) {
+  .chunking-field-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .chunk-content {
+    max-height: 150px;
+  }
+}

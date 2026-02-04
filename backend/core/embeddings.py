@@ -107,7 +107,7 @@ class EmbeddingService:
             logger.error(f"Error in create_embeddings_table for table {table_name}: {str(e)}", exc_info=True)
             raise
 
-    def _build_embedding_sql(self, data: Dict[str, Any], embedding_model: str = "nomic-embed-text") -> str:
+    def _build_embedding_sql(self, data: Dict[str, Any]) -> str:
         """Build SQL for generating embeddings"""
         # Create a string representation of the data for embedding
         concat_fields = " || ' | ' || ".join([f"'{k}: ' || COALESCE(CAST(%({k})s AS TEXT), 'NULL')" 
@@ -115,7 +115,7 @@ class EmbeddingService:
         
         return f"""
         ai.ollama_embed(
-            '{embedding_model}',
+            'nomic-embed-text',
             {concat_fields},
             host => '{self.ollama_host}'
         )
@@ -177,10 +177,10 @@ class EmbeddingService:
             logger.error(f"Error in generate_response: {str(e)}")
             raise
 
-    def process_dataframe(self, df: pd.DataFrame, collection_id: int, table_name: str, embedding_model_name: str = "nomic-embed-text") -> Dict[str, Any]:
+    def process_dataframe(self, df: pd.DataFrame, collection_id: int, table_name: str) -> Dict[str, Any]:
         """Process a DataFrame and store its embeddings"""
         try:
-            logger.info(f"Starting to process DataFrame for collection {collection_id} using embedding model: {embedding_model_name}")
+            logger.info(f"Starting to process DataFrame for collection {collection_id}")
             
             if df.empty:
                 raise ValueError("DataFrame is empty")
@@ -215,7 +215,7 @@ class EmbeddingService:
                         
                         # Build the SQL for inserting with embeddings
                         try:
-                            embedding_sql = self._build_embedding_sql(row_dict, embedding_model=embedding_model_name)
+                            embedding_sql = self._build_embedding_sql(row_dict)
                             
                             # Prepare the insert SQL
                             columns = [f'"{k}"' for k in row_dict.keys()]
@@ -256,10 +256,140 @@ class EmbeddingService:
         except Exception as e:
             logger.error(f"Error in process_dataframe for collection {collection_id}: {str(e)}", exc_info=True)
             raise
-        
-        return {
-            "status": "completed",
-            "processed_rows": processed_rows,
-            "total_rows": total_rows,
-            "timestamp": datetime.utcnow().isoformat()
-        }
+
+    def create_document_embeddings_table(self, table_name: str) -> None:
+        """Create a table for storing document chunk embeddings"""
+        try:
+            logger.info(f"Creating document embeddings table: {table_name}")
+            
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Check if table exists
+                    table_exists_sql = """
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = %s
+                    );
+                    """
+                    cur.execute(table_exists_sql, (table_name,))
+                    table_exists = cur.fetchone()[0]
+                    
+                    if not table_exists:
+                        # Create table for document chunks
+                        create_sql = f"""
+                        CREATE TABLE {table_name} (
+                            id SERIAL PRIMARY KEY,
+                            chunk_index INTEGER,
+                            content TEXT NOT NULL,
+                            start_char INTEGER,
+                            end_char INTEGER,
+                            chunking_method TEXT,
+                            filename TEXT,
+                            file_type TEXT,
+                            embedding VECTOR(768),
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            collection_id INTEGER,
+                            metadata JSONB
+                        );
+                        """
+                        cur.execute(create_sql)
+                        logger.info(f"Created document embeddings table: {table_name}")
+                    else:
+                        logger.info(f"Table {table_name} already exists")
+                
+                conn.commit()
+                
+        except Exception as e:
+            logger.error(f"Error creating document embeddings table {table_name}: {str(e)}", exc_info=True)
+            raise
+
+    def process_document_chunks(
+        self, 
+        df: pd.DataFrame, 
+        collection_id: int, 
+        table_name: str,
+        document_metadata: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Process document chunks and store their embeddings"""
+        try:
+            logger.info(f"Starting to process document chunks for collection {collection_id}")
+            
+            if df.empty:
+                raise ValueError("No chunks to process")
+            
+            # Create the document embeddings table
+            self.create_document_embeddings_table(table_name)
+            
+            total_chunks = len(df)
+            processed_chunks = 0
+            batch_size = 50  # Smaller batches for document chunks
+            
+            logger.info(f"Processing {total_chunks} document chunks")
+            
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                for i in range(0, len(df), batch_size):
+                    batch = df.iloc[i:i + batch_size]
+                    
+                    for _, row in batch.iterrows():
+                        try:
+                            content = str(row.get('content', ''))
+                            if not content.strip():
+                                logger.warning(f"Skipping empty chunk at index {row.get('chunk_index', 'unknown')}")
+                                continue
+                            
+                            # Build embedding SQL for content only
+                            embedding_sql = f"""
+                            ai.ollama_embed(
+                                'nomic-embed-text',
+                                %(content)s,
+                                host => '{self.ollama_host}'
+                            )
+                            """
+                            
+                            # Prepare insert data
+                            insert_data = {
+                                'chunk_index': int(row.get('chunk_index', 0)),
+                                'content': content,
+                                'start_char': int(row.get('start_char', 0)),
+                                'end_char': int(row.get('end_char', 0)),
+                                'chunking_method': str(row.get('chunking_method', '')),
+                                'filename': document_metadata.get('filename', '') if document_metadata else '',
+                                'file_type': document_metadata.get('file_type', '') if document_metadata else '',
+                                'collection_id': collection_id
+                            }
+                            
+                            insert_sql = f"""
+                            INSERT INTO {table_name} (
+                                chunk_index, content, start_char, end_char, 
+                                chunking_method, filename, file_type, collection_id, embedding
+                            ) VALUES (
+                                %(chunk_index)s, %(content)s, %(start_char)s, %(end_char)s,
+                                %(chunking_method)s, %(filename)s, %(file_type)s, %(collection_id)s,
+                                {embedding_sql}
+                            )
+                            """
+                            
+                            cursor.execute(insert_sql, insert_data)
+                            processed_chunks += 1
+                            
+                        except Exception as e:
+                            logger.error(f"Error processing chunk {row.get('chunk_index', 'unknown')}: {str(e)}")
+                            raise
+                    
+                    conn.commit()
+                    logger.info(f"Processed {processed_chunks}/{total_chunks} chunks")
+            
+            logger.info(f"Successfully processed {processed_chunks}/{total_chunks} chunks for collection {collection_id}")
+            return {
+                "status": "completed",
+                "processed_rows": processed_chunks,
+                "total_rows": total_chunks,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in process_document_chunks for collection {collection_id}: {str(e)}", exc_info=True)
+            raise
