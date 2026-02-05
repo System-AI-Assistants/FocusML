@@ -1021,7 +1021,7 @@ const DataCollections = () => {
               )}
 
               {!uploading && (
-                <div style={{ width: '100%', marginTop: 16 }} onClick={(e) => e.stopPropagation()}>
+                <div className="embedding-model-selector" onClick={(e) => e.stopPropagation()}>
                   <div style={{ marginBottom: 12 }}>
                     <Text strong>Select Embedding Model:</Text>
                   </div>

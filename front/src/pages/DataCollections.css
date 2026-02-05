@@ -108,6 +108,8 @@
   padding: 24px;
   border-style: solid;
   cursor: default;
+  max-height: none;
+  overflow: visible;
 }
 
 /* Upload placeholder */
@@ -159,6 +161,9 @@
 /* File preview */
 .file-preview {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .file-info {
@@ -212,9 +217,25 @@
   font-size: 0.85rem;
 }
 
+/* Embedding model selector */
+.embedding-model-selector {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.embedding-model-selector .ant-select {
+  width: 100% !important;
+  max-width: 100%;
+}
+
 /* Upload button */
 .upload-btn {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   height: 48px;
   font-size: 1rem;
   font-weight: 500;
@@ -512,6 +533,9 @@
   padding: 16px;
   margin: 16px 0;
   animation: fadeIn 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chunking-header {
@@ -532,6 +556,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chunking-field {
@@ -550,6 +577,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .chunking-description {
