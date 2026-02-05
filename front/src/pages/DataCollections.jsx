@@ -20,7 +20,8 @@ import {
     InputNumber,
     Collapse,
     Divider,
-    Tabs
+    Tabs,
+    Radio
 } from 'antd';
 import {
     // File Icons
@@ -232,6 +233,11 @@ const DataCollections = () => {
     const [activeTab, setActiveTab] = useState('personal');
     const [isAdmin, setIsAdmin] = useState(false);
     const [groupsMap, setGroupsMap] = useState({});
+
+    // Access settings state
+    const [selectedVisibility, setSelectedVisibility] = useState('private');
+    const [selectedGroupId, setSelectedGroupId] = useState(null);
+    const [groupsList, setGroupsList] = useState([]);
 
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
@@ -739,6 +745,12 @@ const DataCollections = () => {
                 formData.append('chunk_overlap', chunkOverlap.toString());
             }
 
+            // Add visibility / access settings
+            if (selectedVisibility === 'team' && selectedGroupId) {
+                formData.append('group_id', selectedGroupId.toString());
+            }
+            // Note: 'private' = no group_id, 'platform' = no group_id (platform-wide collections handled differently if needed)
+
             console.log('Sending file:', {
                 name: file.name,
                 size: file.size,
@@ -881,7 +893,7 @@ const DataCollections = () => {
         checkAdminStatus();
     }, [initialized, keycloak]);
 
-    // Fetch groups for mapping IDs to names
+    // Fetch groups for mapping IDs to names and for access settings
     useEffect(() => {
         const fetchGroups = async () => {
             if (initialized && keycloak.authenticated) {
@@ -892,6 +904,7 @@ const DataCollections = () => {
                         groupsData.forEach(g => {
                             map[g.id] = g.name;
                         });
+                        setGroupsList(groupsData);
                     }
                     setGroupsMap(map);
                 } catch (err) {
@@ -1102,6 +1115,58 @@ const DataCollections = () => {
                                 </div>
                             )}
 
+                            {/* Access Settings */}
+                            {!uploading && (
+                                <div className="access-settings" onClick={(e) => e.stopPropagation()}>
+                                    <div style={{ marginBottom: 12 }}>
+                                        <Text strong>Visibility:</Text>
+                                    </div>
+                                    <Radio.Group
+                                        value={selectedVisibility}
+                                        onChange={(e) => {
+                                            setSelectedVisibility(e.target.value);
+                                            if (e.target.value !== 'team') {
+                                                setSelectedGroupId(null);
+                                            }
+                                        }}
+                                        style={{ width: '100%', marginBottom: selectedVisibility === 'team' ? 12 : 16 }}
+                                    >
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            <Radio value="private">
+                                                <span style={{ fontWeight: 500 }}>Only Me</span>
+                                                <span style={{ color: '#8c8c8c', marginLeft: 8, fontSize: 13 }}>Private access, only you can use this data</span>
+                                            </Radio>
+                                            <Radio value="team">
+                                                <span style={{ fontWeight: 500 }}>Team Access</span>
+                                                <span style={{ color: '#8c8c8c', marginLeft: 8, fontSize: 13 }}>Share with specific groups</span>
+                                            </Radio>
+                                            <Radio value="platform">
+                                                <span style={{ fontWeight: 500 }}>Platform-wide</span>
+                                                <span style={{ color: '#8c8c8c', marginLeft: 8, fontSize: 13 }}>Available to all users on this platform</span>
+                                            </Radio>
+                                        </div>
+                                    </Radio.Group>
+
+                                    {selectedVisibility === 'team' && (
+                                        <Select
+                                            style={{ width: '100%', marginBottom: 16 }}
+                                            placeholder="Select a group to share with"
+                                            value={selectedGroupId}
+                                            onChange={setSelectedGroupId}
+                                            size="large"
+                                            showSearch
+                                            optionFilterProp="children"
+                                        >
+                                            {groupsList.map(group => (
+                                                <Select.Option key={group.id} value={group.id}>
+                                                    {group.name}
+                                                </Select.Option>
+                                            ))}
+                                        </Select>
+                                    )}
+                                </div>
+                            )}
+
                             {!uploading && (
                                 <Button
                                     type="primary"
@@ -1112,7 +1177,7 @@ const DataCollections = () => {
                                         handleUpload();
                                     }}
                                     icon={<CloudUploadOutlined />}
-                                    disabled={!selectedEmbeddingModel}
+                                    disabled={!selectedEmbeddingModel || (selectedVisibility === 'team' && !selectedGroupId)}
                                 >
                                     Process File
                                 </Button>

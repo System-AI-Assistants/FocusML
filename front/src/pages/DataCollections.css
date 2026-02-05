@@ -771,3 +771,30 @@
 .collections-tabs .ant-tag .anticon {
   margin-right: 4px;
 }
+
+/* Access Settings Styles */
+.access-settings {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.access-settings .ant-radio-wrapper {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.access-settings .ant-radio-wrapper span:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.access-settings .ant-select {
+  width: 100% !important;
+  max-width: 100%;
+}
