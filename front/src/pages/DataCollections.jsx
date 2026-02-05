@@ -53,6 +53,7 @@ import {
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKeycloak } from '@react-keycloak/web';
+import { getEmbeddingModels } from '../services/api';
 import './DataCollections.css';
 
 const { Title, Text } = Typography;
@@ -212,6 +213,10 @@ const DataCollections = () => {
   const [previewData, setPreviewData] = useState({ columns: [], rows: [], content_type: 'tabular' });
   const [previewLoading, setPreviewLoading] = useState(false);
   
+  // Embedding model state
+  const [embeddingModels, setEmbeddingModels] = useState([]);
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState(null);
+  
   // Chunking state
   const [chunkingMethods, setChunkingMethods] = useState([]);
   const [selectedChunkingMethod, setSelectedChunkingMethod] = useState('recursive');
@@ -256,6 +261,21 @@ const DataCollections = () => {
     }
   };
 
+  // Fetch embedding models
+  const fetchEmbeddingModels = async () => {
+    try {
+      const models = await getEmbeddingModels(keycloak);
+      setEmbeddingModels(models);
+      // Auto-select first model if available
+      if (models.length > 0 && !selectedEmbeddingModel) {
+        setSelectedEmbeddingModel(models[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch embedding models:', error);
+      message.error('Failed to load embedding models');
+    }
+  };
+
   // Format file size to human-readable format
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -268,6 +288,7 @@ const DataCollections = () => {
   // Handle file removal
   const handleRemove = () => {
     setFile(null);
+    setSelectedEmbeddingModel(embeddingModels.length > 0 ? embeddingModels[0].id : null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -549,6 +570,17 @@ const DataCollections = () => {
       },
     },
     {
+      title: 'Embedding Model',
+      key: 'embedding_model',
+      width: 200,
+      render: (_, record) => {
+        const modelName = record.embedding_model_name || 
+                         (record.embeddings_metadata && record.embeddings_metadata.embedding_model) ||
+                         'N/A';
+        return <Tag color="blue">{modelName}</Tag>;
+      },
+    },
+    {
       title: 'Actions',
       key: 'actions',
       width: 150,
@@ -659,6 +691,11 @@ const DataCollections = () => {
       return;
     }
 
+    if (!selectedEmbeddingModel) {
+      message.error('Please select an embedding model!');
+      return;
+    }
+
     setUploading(true);
     setIsAnimating(true);
 
@@ -675,6 +712,7 @@ const DataCollections = () => {
       );
       
       formData.append('file', fileToUpload, file.name);
+      formData.append('embedding_model_id', selectedEmbeddingModel.toString());
 
       // Add chunking parameters for document files
       if (isDocumentFile(file.name)) {
@@ -687,6 +725,7 @@ const DataCollections = () => {
         name: file.name,
         size: file.size,
         type: file.type,
+        embedding_model_id: selectedEmbeddingModel,
         isDocument: isDocumentFile(file.name),
         chunkingMethod: selectedChunkingMethod,
         isFile: fileToUpload instanceof File
@@ -711,7 +750,8 @@ const DataCollections = () => {
       message.success('File uploaded successfully!');
       refreshCollections();
       setFile(null);
-      // Reset chunking options
+      // Reset options
+      setSelectedEmbeddingModel(embeddingModels.length > 0 ? embeddingModels[0].id : null);
       setSelectedChunkingMethod('recursive');
       setChunkSize(512);
       setChunkOverlap(50);
@@ -805,9 +845,12 @@ const DataCollections = () => {
   };
 
   useEffect(() => {
-    refreshCollections();
-    fetchChunkingMethods();
-  }, []);
+    if (keycloak && keycloak.authenticated) {
+      refreshCollections();
+      fetchChunkingMethods();
+      fetchEmbeddingModels();
+    }
+  }, [keycloak]);
 
   // Update chunking options visibility when file changes
   useEffect(() => {
@@ -978,6 +1021,29 @@ const DataCollections = () => {
               )}
 
               {!uploading && (
+                <div style={{ width: '100%', marginTop: 16 }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong>Select Embedding Model:</Text>
+                  </div>
+                  <Select
+                    style={{ width: '100%', marginBottom: 16 }}
+                    placeholder="Choose an embedding model"
+                    value={selectedEmbeddingModel}
+                    onChange={setSelectedEmbeddingModel}
+                    size="large"
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                    options={embeddingModels.map(model => ({
+                      value: model.id,
+                      label: `${model.name}${model.family_name ? ` (${model.family_name})` : ''}`
+                    }))}
+                  />
+                </div>
+              )}
+
+              {!uploading && (
                 <Button
                   type="primary"
                   size="large"
@@ -987,6 +1053,7 @@ const DataCollections = () => {
                     handleUpload();
                   }}
                   icon={<CloudUploadOutlined />}
+                  disabled={!selectedEmbeddingModel}
                 >
                   Process File
                 </Button>
@@ -1052,6 +1119,7 @@ const DataCollections = () => {
           rowKey="id"
           loading={tableLoading}
           pagination={{ pageSize: 10 }}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: (
               <div className="empty-table">
