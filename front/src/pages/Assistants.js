@@ -323,11 +323,11 @@ function Assistants() {
             onChange={setActiveTab}
             items={tabItems}
             type="card"
-            style={{ marginTop: 16 }}
+            className="assistants-tabs"
           />
         </Space>
       </div>
-      <Card className="modern-card" style={{ borderTopLeftRadius: 0 }}>
+      <Card className="assistants-table-card">
         <Table
           dataSource={getFilteredData()}
           columns={columns}

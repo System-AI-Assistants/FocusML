@@ -89,6 +89,8 @@ import {
   getWidgetStatistics,
   getWidgetEmbedCode
 } from '../services/api';
+import './Integration.css';
+
 // Date formatting helper
 const formatDate = (dateString) => {
   if (!dateString) return 'Never';
@@ -135,7 +137,7 @@ function Integration() {
   const [fullKeys, setFullKeys] = useState(new Map()); // Store full keys temporarily (keyId -> fullKey)
   const [testResponse, setTestResponse] = useState(null); // Store test response
   const [testLoading, setTestLoading] = useState(false);
-  
+
   // Widget states
   const [widgets, setWidgets] = useState([]);
   const [selectedWidget, setSelectedWidget] = useState(null);
@@ -148,7 +150,7 @@ function Integration() {
   const [mainTab, setMainTab] = useState('api'); // 'api' or 'widget'
   const [customApiUrl, setCustomApiUrl] = useState('');
   const [customWidgetUrl, setCustomWidgetUrl] = useState('');
-  
+
   // Modal states
   const [createKeyModalVisible, setCreateKeyModalVisible] = useState(false);
   const [whitelistModalVisible, setWhitelistModalVisible] = useState(false);
@@ -157,7 +159,7 @@ function Integration() {
   const [createWidgetModalVisible, setCreateWidgetModalVisible] = useState(false);
   const [widgetEmbedModalVisible, setWidgetEmbedModalVisible] = useState(false);
   const [widgetSessionsModalVisible, setWidgetSessionsModalVisible] = useState(false);
-  
+
   // Forms
   const [createKeyForm] = Form.useForm();
   const [whitelistForm] = Form.useForm();
@@ -238,14 +240,14 @@ function Integration() {
         usage_period: values.usage_period || null,
       };
       const response = await createAPIKey(keycloak, apiKeyData);
-      
+
       // Store the full key temporarily
       setFullKeys(prev => new Map(prev).set(response.id, response.full_key));
-      
+
       message.success('API key created successfully!');
       setCreateKeyModalVisible(false);
       createKeyForm.resetFields();
-      
+
       // Show the full key in a modal
       Modal.info({
         title: 'API Key Created',
@@ -265,9 +267,9 @@ function Integration() {
               <Input
                 value={response.full_key}
                 readOnly
-                style={{ 
-                  flex: 1, 
-                  fontFamily: 'monospace', 
+                style={{
+                  flex: 1,
+                  fontFamily: 'monospace',
                   fontSize: '13px',
                   wordBreak: 'break-all'
                 }}
@@ -293,7 +295,7 @@ function Integration() {
         ),
         okText: 'I\'ve copied it',
       });
-      
+
       fetchAPIKeys();
     } catch (error) {
       message.error(error.message || 'Failed to create API key');
@@ -361,7 +363,7 @@ function Integration() {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const data = await getWidgetStatistics(
-        keycloak, 
+        keycloak,
         selectedWidget.id,
         thirtyDaysAgo.toISOString(),
         now.toISOString()
@@ -398,20 +400,20 @@ function Integration() {
         allowed_domains: values.allowed_domains ? values.allowed_domains.split(',').map(d => d.trim()).filter(d => d) : [],
       };
       const response = await createWidget(keycloak, widgetData);
-      
+
       // Store the full token
       setWidgetFullTokens(prev => new Map(prev).set(response.id, response.full_token));
-      
+
       message.success('Widget created successfully!');
       setCreateWidgetModalVisible(false);
       createWidgetForm.resetFields();
       fetchWidgets();
-      
+
       // Show the embed code modal
       setSelectedWidget(response);
       setEmbedCode(null);
       handleGetEmbedCode(response.id);
-      
+
     } catch (error) {
       message.error(error.message || 'Failed to create widget');
     }
@@ -436,7 +438,7 @@ function Integration() {
       setWidgetFullTokens(prev => new Map(prev).set(response.id, response.full_token));
       message.success('Widget token regenerated!');
       fetchWidgets();
-      
+
       Modal.info({
         title: 'New Widget Token',
         width: 600,
@@ -504,7 +506,7 @@ function Integration() {
     const fullKey = fullKeys.get(keyId);
     const apiKey = fullKey || 'YOUR_API_KEY';
     const showPlaceholder = !fullKey;
-    
+
     switch (language) {
       case 'curl':
         return `curl -X POST "${API_BASE_URL}${endpoint}" \\
@@ -751,7 +753,7 @@ console.log(data);`;
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div className="integration-container">
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div>
           <Title level={2}>
@@ -766,6 +768,7 @@ console.log(data);`;
           activeKey={mainTab}
           onChange={setMainTab}
           type="card"
+          className="integration-tabs"
           items={[
             {
               key: 'api',
@@ -840,7 +843,7 @@ console.log(data);`;
                         <Title level={4}>{selectedWidget.name} - Details</Title>
                         <Button onClick={() => setSelectedWidget(null)}>Close</Button>
                       </Space>
-                      
+
                       <Tabs
                         items={[
                           {
@@ -849,30 +852,30 @@ console.log(data);`;
                             children: (
                               <Row gutter={16}>
                                 <Col span={6}>
-                                  <Statistic 
-                                    title="Total Sessions" 
-                                    value={widgetStatistics?.total_sessions || 0} 
+                                  <Statistic
+                                    title="Total Sessions"
+                                    value={widgetStatistics?.total_sessions || 0}
                                     prefix={<TeamOutlined />}
                                   />
                                 </Col>
                                 <Col span={6}>
-                                  <Statistic 
-                                    title="Active Sessions" 
-                                    value={widgetStatistics?.active_sessions || 0} 
+                                  <Statistic
+                                    title="Active Sessions"
+                                    value={widgetStatistics?.active_sessions || 0}
                                     valueStyle={{ color: '#52c41a' }}
                                   />
                                 </Col>
                                 <Col span={6}>
-                                  <Statistic 
-                                    title="Total Messages" 
-                                    value={widgetStatistics?.total_messages || 0} 
+                                  <Statistic
+                                    title="Total Messages"
+                                    value={widgetStatistics?.total_messages || 0}
                                     prefix={<MessageOutlined />}
                                   />
                                 </Col>
                                 <Col span={6}>
-                                  <Statistic 
-                                    title="Avg Latency" 
-                                    value={widgetStatistics?.avg_latency_ms?.toFixed(0) || 0} 
+                                  <Statistic
+                                    title="Avg Latency"
+                                    value={widgetStatistics?.avg_latency_ms?.toFixed(0) || 0}
                                     suffix="ms"
                                   />
                                 </Col>
@@ -887,9 +890,9 @@ console.log(data);`;
                                 <Descriptions.Item label="Position">{selectedWidget.position}</Descriptions.Item>
                                 <Descriptions.Item label="Primary Color">
                                   <Space>
-                                    <div style={{ 
-                                      width: 20, 
-                                      height: 20, 
+                                    <div style={{
+                                      width: 20,
+                                      height: 20,
                                       backgroundColor: selectedWidget.primary_color,
                                       borderRadius: 4,
                                       border: '1px solid #d9d9d9'
@@ -904,7 +907,7 @@ console.log(data);`;
                                 <Descriptions.Item label="Persistence">{selectedWidget.enable_persistence ? 'Enabled' : 'Disabled'}</Descriptions.Item>
                                 <Descriptions.Item label="Session Timeout">{selectedWidget.session_timeout_hours}h</Descriptions.Item>
                                 <Descriptions.Item label="Allowed Domains" span={2}>
-                                  {selectedWidget.allowed_domains?.length > 0 
+                                  {selectedWidget.allowed_domains?.length > 0
                                     ? selectedWidget.allowed_domains.map(d => <Tag key={d}>{d}</Tag>)
                                     : <Text type="secondary">All domains (not recommended)</Text>
                                   }
@@ -1225,18 +1228,18 @@ console.log(data);`;
                                 message.error('Assistant not found');
                                 return;
                               }
-                              
+
                               // Use full key if available, otherwise show error
                               const apiKeyToUse = fullKeys.get(selectedKey.id);
                               if (!apiKeyToUse) {
                                 message.error('Please create a new API key to test. Full keys are only shown once after creation.');
                                 return;
                               }
-                              
+
                               setTestLoading(true);
                               setTestResponse(null);
                               message.loading({ content: 'Sending request...', key: 'testRequest', duration: 0 });
-                              
+
                               const response = await fetch(`${API_BASE_URL}/assistants/${assistant.id}/chat/`, {
                                 method: 'POST',
                                 headers: {
@@ -1249,40 +1252,40 @@ console.log(data);`;
                                   ]
                                 }),
                               });
-                              
+
                               message.destroy('testRequest');
                               setTestLoading(false);
-                              
+
                               const data = await response.json();
                               console.log('Test response:', data);
-                              
+
                               if (!response.ok) {
-                                setTestResponse({ 
-                                  success: false, 
+                                setTestResponse({
+                                  success: false,
                                   status: response.status,
                                   data,
-                                  model: assistant.model 
+                                  model: assistant.model
                                 });
                                 return;
                               }
-                              
+
                               // Extract the assistant's response content
                               const assistantMessage = data.choices?.[0]?.message?.content || JSON.stringify(data, null, 2);
-                              
-                              setTestResponse({ 
-                                success: true, 
+
+                              setTestResponse({
+                                success: true,
                                 message: assistantMessage,
                                 data,
-                                model: assistant.model 
+                                model: assistant.model
                               });
-                              
+
                             } catch (error) {
                               message.destroy('testRequest');
                               setTestLoading(false);
                               console.error('Test error:', error);
-                              setTestResponse({ 
-                                success: false, 
-                                error: error.message 
+                              setTestResponse({
+                                success: false,
+                                error: error.message
                               });
                             }
                           }}
@@ -1300,7 +1303,7 @@ console.log(data);`;
                             </Button>
                           </Form.Item>
                         </Form>
-                        
+
                         {/* Response Section */}
                         {testResponse && (
                           <div style={{ marginTop: 16 }}>
@@ -1325,8 +1328,8 @@ console.log(data);`;
                                 </Collapse>
                               </div>
                             ) : (
-                              <Alert 
-                                type="error" 
+                              <Alert
+                                type="error"
                                 message={`Error${testResponse.status ? ` (${testResponse.status})` : ''}`}
                                 description={
                                   <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: 12 }}>
@@ -1551,9 +1554,9 @@ console.log(data);`;
           <Divider>Behavior</Divider>
 
           <Form.Item name="start_message" label="Welcome Message">
-            <TextArea 
-              rows={3} 
-              placeholder="Hello! How can I help you today?" 
+            <TextArea
+              rows={3}
+              placeholder="Hello! How can I help you today?"
             />
           </Form.Item>
 
@@ -1577,14 +1580,14 @@ console.log(data);`;
 
           <Divider>Security</Divider>
 
-          <Form.Item 
-            name="allowed_domains" 
+          <Form.Item
+            name="allowed_domains"
             label="Allowed Domains"
             extra="Comma-separated list of domains where widget can be embedded (e.g., example.com, app.example.com)"
           >
-            <TextArea 
-              rows={2} 
-              placeholder="example.com, app.example.com" 
+            <TextArea
+              rows={2}
+              placeholder="example.com, app.example.com"
             />
           </Form.Item>
 
@@ -1621,9 +1624,9 @@ console.log(data);`;
                       value={widgetFullTokens.get(selectedWidget.id)}
                       readOnly
                       addonAfter={
-                        <CopyOutlined 
-                          onClick={() => copyToClipboard(widgetFullTokens.get(selectedWidget.id))} 
-                          style={{ cursor: 'pointer' }} 
+                        <CopyOutlined
+                          onClick={() => copyToClipboard(widgetFullTokens.get(selectedWidget.id))}
+                          style={{ cursor: 'pointer' }}
                         />
                       }
                     />
@@ -1640,7 +1643,7 @@ console.log(data);`;
                 showIcon
               />
             )}
-            
+
             <Alert
               message="Installation Instructions"
               description={
@@ -1678,12 +1681,12 @@ console.log(data);`;
                 </Col>
               </Row>
             </Card>
-            
+
             <Card title="Embed Code" size="small">
-              <pre style={{ 
-                background: '#f5f5f5', 
-                padding: 16, 
-                borderRadius: 4, 
+              <pre style={{
+                background: '#f5f5f5',
+                padding: 16,
+                borderRadius: 4,
                 overflow: 'auto',
                 maxHeight: 200,
                 margin: 0,
@@ -1705,9 +1708,9 @@ console.log(data);`;
                   return code;
                 })()}
               </pre>
-              <Button 
-                type="primary" 
-                icon={<CopyOutlined />} 
+              <Button
+                type="primary"
+                icon={<CopyOutlined />}
                 onClick={() => {
                   let code = embedCode.embed_code;
                   if (selectedWidget && widgetFullTokens.has(selectedWidget.id)) {
@@ -1779,8 +1782,8 @@ console.log(data);`;
                   title: '',
                   key: 'action',
                   render: (_, record) => (
-                    <Button 
-                      type="link" 
+                    <Button
+                      type="link"
                       size="small"
                       onClick={() => handleViewSessionMessages(record)}
                     >
@@ -1793,7 +1796,7 @@ console.log(data);`;
           </Col>
           {selectedSession && (
             <Col span={14}>
-              <Card 
+              <Card
                 title={`Conversation - ${selectedSession.session_id.substring(0, 8)}...`}
                 size="small"
                 extra={
@@ -1808,7 +1811,7 @@ console.log(data);`;
                 ) : (
                   <Space direction="vertical" style={{ width: '100%' }}>
                     {sessionMessages.map((msg, i) => (
-                      <div 
+                      <div
                         key={i}
                         style={{
                           padding: '8px 12px',
@@ -1823,9 +1826,9 @@ console.log(data);`;
                         <Text style={{ color: msg.role === 'user' ? 'white' : 'inherit' }}>
                           {msg.content}
                         </Text>
-                        <div style={{ 
-                          fontSize: 10, 
-                          opacity: 0.7, 
+                        <div style={{
+                          fontSize: 10,
+                          opacity: 0.7,
                           marginTop: 4,
                           color: msg.role === 'user' ? 'white' : '#666'
                         }}>
