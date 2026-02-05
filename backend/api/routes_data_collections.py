@@ -1,6 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Response, BackgroundTasks, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Response, BackgroundTasks, Form, Depends, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List, Optional
 import os
 import pandas as pd
@@ -12,9 +13,11 @@ import mimetypes
 from db.session import SessionLocal
 from db.models.data_collection import DataCollection
 from db.models.model import Model
+from db.models.group import GroupMember
 from tasks.embedding_tasks import process_embeddings_task
 from core.text_chunking import TextChunker, ChunkingMethod
 from core.document_parser import DocumentParser
+from api.deps import get_current_user, is_platform_admin
 
 logger = logging.getLogger(__name__)
 
@@ -57,23 +60,29 @@ async def get_chunking_methods():
 
 @router.post("/upload/")
 async def upload_file(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     embedding_model_id: Optional[int] = Form(None),
     chunking_method: Optional[str] = Form(None),
     chunk_size: Optional[int] = Form(None),
-    chunk_overlap: Optional[int] = Form(None)
+    chunk_overlap: Optional[int] = Form(None),
+    group_id: Optional[int] = Form(None),
+    token_info: dict = Depends(get_current_user)
 ):
     """
     Upload a file (tabular or document) for processing.
     
     - embedding_model_id: ID of the embedding model to use (optional, defaults to nomic-embed-text)
+    - group_id: Optional group ID to associate this collection with a group
     
     For document files (txt, pdf, docx), you can also specify:
     - chunking_method: 'fixed_size', 'sentence', 'paragraph', 'semantic', 'recursive'
     - chunk_size: Size of each chunk (for fixed_size and recursive methods)
     - chunk_overlap: Overlap between chunks
     """
+    user_id = token_info.get('sub')
+    
     db = SessionLocal()
     try:
         # Check if the file is valid
@@ -123,7 +132,9 @@ async def upload_file(
                     chunking_method=chunking_method,
                     chunk_size=chunk_size,
                     chunk_overlap=chunk_overlap,
-                    embedding_model_id=embedding_model_id
+                    embedding_model_id=embedding_model_id,
+                    owner_id=user_id,
+                    group_id=group_id
                 )
             else:
                 # Process tabular file (csv, xlsx)
@@ -132,7 +143,9 @@ async def upload_file(
                     file_path=file_path,
                     file_ext=file_ext,
                     original_filename=file.filename,
-                    embedding_model_id=embedding_model_id
+                    embedding_model_id=embedding_model_id,
+                    owner_id=user_id,
+                    group_id=group_id
                 )
 
             # Start background task for embeddings
@@ -186,7 +199,9 @@ async def _process_document_upload(
     chunking_method: Optional[str],
     chunk_size: Optional[int],
     chunk_overlap: Optional[int],
-    embedding_model_id: Optional[int] = None
+    embedding_model_id: Optional[int] = None,
+    owner_id: Optional[str] = None,
+    group_id: Optional[int] = None
 ) -> DataCollection:
     """Process a document file (txt, pdf, docx) upload"""
     
@@ -239,7 +254,9 @@ async def _process_document_upload(
         chunking_config=chunking_config if chunking_config else None,
         document_metadata=document_metadata,
         embeddings_status='pending',
-        embedding_model_id=embedding_model_id
+        embedding_model_id=embedding_model_id,
+        owner_id=owner_id,
+        group_id=group_id
     )
     
     db.add(collection)
@@ -254,7 +271,9 @@ async def _process_tabular_upload(
     file_path: str,
     file_ext: str,
     original_filename: str,
-    embedding_model_id: Optional[int] = None
+    embedding_model_id: Optional[int] = None,
+    owner_id: Optional[str] = None,
+    group_id: Optional[int] = None
 ) -> DataCollection:
     """Process a tabular file (csv, xlsx) upload"""
     
@@ -278,7 +297,9 @@ async def _process_tabular_upload(
         chunking_config=None,
         document_metadata=None,
         embeddings_status='pending',
-        embedding_model_id=embedding_model_id
+        embedding_model_id=embedding_model_id,
+        owner_id=owner_id,
+        group_id=group_id
     )
 
     db.add(collection)
@@ -288,10 +309,38 @@ async def _process_tabular_upload(
     return collection
 
 @router.get("/collections/", response_model=List[dict])
-def list_collections():
-    """List all data collections"""
+def list_collections(
+    request: Request,
+    show_all: bool = False,
+    token_info: dict = Depends(get_current_user)
+):
+    """
+    List data collections.
+    - Default: Returns user's personal collections and collections from their groups.
+    - show_all=true (admin only): Returns all collections.
+    """
+    user_id = token_info.get('sub')
+    
     with SessionLocal() as db:
-        collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
+        # If admin and show_all, return everything
+        if show_all and is_platform_admin(token_info):
+            collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
+        else:
+            # Get user's group IDs
+            user_groups = db.query(GroupMember.group_id).filter(
+                GroupMember.user_id == user_id,
+                GroupMember.is_active == True
+            ).all()
+            user_group_ids = [g.group_id for g in user_groups]
+            
+            # Filter: user's own collections OR collections from user's groups
+            collections = db.query(DataCollection).filter(
+                or_(
+                    DataCollection.owner_id == user_id,
+                    DataCollection.group_id.in_(user_group_ids) if user_group_ids else False
+                )
+            ).order_by(DataCollection.created_at.desc()).all()
+        
         result = []
         for collection in collections:
             collection_dict = {
@@ -304,6 +353,9 @@ def list_collections():
                 collection_dict["embedding_model_name"] = collection.embedding_model.name
             elif collection.embeddings_metadata and collection.embeddings_metadata.get('embedding_model'):
                 collection_dict["embedding_model_name"] = collection.embeddings_metadata.get('embedding_model')
+            # Add group name if available
+            if collection.group:
+                collection_dict["group_name"] = collection.group.name
             result.append(collection_dict)
         return result
 

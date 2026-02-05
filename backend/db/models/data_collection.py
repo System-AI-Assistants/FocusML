@@ -19,10 +19,13 @@ class DataCollection(Base):
     embeddings_status = Column(String, default='pending')  # pending, processing, completed, failed
     embeddings_metadata = Column(JSONB, default=dict)  # Store any metadata about embeddings
     embedding_model_id = Column(Integer, ForeignKey('models.id'), nullable=True)  # Reference to the embedding model used
+    owner_id = Column(String(255), nullable=True)  # Keycloak user ID
+    group_id = Column(Integer, ForeignKey('groups.id', ondelete='SET NULL'), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
     
     embedding_model = relationship("Model", foreign_keys=[embedding_model_id])
+    group = relationship("Group", backref="data_collections")
     
     def to_dict(self):
         return {
@@ -34,6 +37,8 @@ class DataCollection(Base):
             "chunking_method": self.chunking_method,
             "chunking_config": self.chunking_config,
             "document_metadata": self.document_metadata,
+            "owner_id": self.owner_id,
+            "group_id": self.group_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
