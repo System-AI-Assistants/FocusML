@@ -149,10 +149,7 @@ function UserProfile() {
   return (
     <div className="page-container">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
-        <div className="page-header" style={{ marginBottom: 0 }}>
-          <h2 className="page-header-title">{profile.username}</h2>
-          <span className="page-header-subtitle">User profile and activity</span>
-        </div>
+        
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Button 
             icon={<ArrowLeftOutlined />} 
