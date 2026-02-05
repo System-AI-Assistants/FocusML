@@ -107,7 +107,7 @@ class EmbeddingService:
             logger.error(f"Error in create_embeddings_table for table {table_name}: {str(e)}", exc_info=True)
             raise
 
-    def _build_embedding_sql(self, data: Dict[str, Any]) -> str:
+    def _build_embedding_sql(self, data: Dict[str, Any], embedding_model: str = "nomic-embed-text") -> str:
         """Build SQL for generating embeddings"""
         # Create a string representation of the data for embedding
         concat_fields = " || ' | ' || ".join([f"'{k}: ' || COALESCE(CAST(%({k})s AS TEXT), 'NULL')" 
@@ -115,7 +115,7 @@ class EmbeddingService:
         
         return f"""
         ai.ollama_embed(
-            'nomic-embed-text',
+            '{embedding_model}',
             {concat_fields},
             host => '{self.ollama_host}'
         )
@@ -177,10 +177,10 @@ class EmbeddingService:
             logger.error(f"Error in generate_response: {str(e)}")
             raise
 
-    def process_dataframe(self, df: pd.DataFrame, collection_id: int, table_name: str) -> Dict[str, Any]:
+    def process_dataframe(self, df: pd.DataFrame, collection_id: int, table_name: str, embedding_model_name: str = "nomic-embed-text") -> Dict[str, Any]:
         """Process a DataFrame and store its embeddings"""
         try:
-            logger.info(f"Starting to process DataFrame for collection {collection_id}")
+            logger.info(f"Starting to process DataFrame for collection {collection_id} using embedding model: {embedding_model_name}")
             
             if df.empty:
                 raise ValueError("DataFrame is empty")
@@ -215,7 +215,7 @@ class EmbeddingService:
                         
                         # Build the SQL for inserting with embeddings
                         try:
-                            embedding_sql = self._build_embedding_sql(row_dict)
+                            embedding_sql = self._build_embedding_sql(row_dict, embedding_model=embedding_model_name)
                             
                             # Prepare the insert SQL
                             columns = [f'"{k}"' for k in row_dict.keys()]
@@ -309,11 +309,12 @@ class EmbeddingService:
         df: pd.DataFrame, 
         collection_id: int, 
         table_name: str,
-        document_metadata: Dict[str, Any] = None
+        document_metadata: Dict[str, Any] = None,
+        embedding_model_name: str = "nomic-embed-text"
     ) -> Dict[str, Any]:
         """Process document chunks and store their embeddings"""
         try:
-            logger.info(f"Starting to process document chunks for collection {collection_id}")
+            logger.info(f"Starting to process document chunks for collection {collection_id} using embedding model: {embedding_model_name}")
             
             if df.empty:
                 raise ValueError("No chunks to process")
@@ -343,7 +344,7 @@ class EmbeddingService:
                             # Build embedding SQL for content only
                             embedding_sql = f"""
                             ai.ollama_embed(
-                                'nomic-embed-text',
+                                '{embedding_model_name}',
                                 %(content)s,
                                 host => '{self.ollama_host}'
                             )

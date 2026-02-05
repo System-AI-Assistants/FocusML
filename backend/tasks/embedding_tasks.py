@@ -22,6 +22,19 @@ def process_embeddings_task(collection_id: int):
             logger.error(f"Collection {collection_id} not found")
             return
         
+        # Get the embedding model name
+        embedding_model_name = "nomic-embed-text"  # Default fallback
+        if collection.embedding_model_id:
+            if collection.embedding_model:
+                embedding_model_name = collection.embedding_model.name
+            else:
+                # Reload the relationship
+                db.refresh(collection)
+                if collection.embedding_model:
+                    embedding_model_name = collection.embedding_model.name
+                else:
+                    logger.warning(f"Embedding model {collection.embedding_model_id} not found, using default: nomic-embed-text")
+        
         # Update status to processing
         collection.embeddings_status = 'processing'
         db.commit()
@@ -39,13 +52,15 @@ def process_embeddings_task(collection_id: int):
             result = _process_document_embeddings(
                 collection=collection,
                 embedding_service=embedding_service,
-                table_name=table_name
+                table_name=table_name,
+                embedding_model_name=embedding_model_name
             )
         else:
             result = _process_tabular_embeddings(
                 collection=collection,
                 embedding_service=embedding_service,
-                table_name=table_name
+                table_name=table_name,
+                embedding_model_name=embedding_model_name
             )
         
         # Update collection status
@@ -55,11 +70,12 @@ def process_embeddings_task(collection_id: int):
             'processed_at': result['timestamp'],
             'processed_rows': result['processed_rows'],
             'total_rows': result['total_rows'],
-            'content_type': collection.content_type
+            'content_type': collection.content_type,
+            'embedding_model': embedding_model_name
         }
         db.commit()
         
-        logger.info(f"Successfully processed embeddings for collection {collection_id}")
+        logger.info(f"Successfully processed embeddings for collection {collection_id} using model {embedding_model_name}")
         
     except Exception as e:
         logger.error(f"Error processing embeddings for collection {collection_id}: {str(e)}")
@@ -81,10 +97,11 @@ def process_embeddings_task(collection_id: int):
 def _process_tabular_embeddings(
     collection: DataCollection,
     embedding_service: EmbeddingService,
-    table_name: str
+    table_name: str,
+    embedding_model_name: str = "nomic-embed-text"
 ) -> Dict[str, Any]:
     """Process embeddings for tabular data (CSV, XLSX)"""
-    logger.info(f"Processing tabular embeddings for collection {collection.id}")
+    logger.info(f"Processing tabular embeddings for collection {collection.id} using model {embedding_model_name}")
     
     # Read the file
     if collection.file_type == 'csv':
@@ -94,17 +111,18 @@ def _process_tabular_embeddings(
     else:
         raise ValueError(f"Unsupported tabular file type: {collection.file_type}")
     
-    # Process the DataFrame
-    return embedding_service.process_dataframe(df, collection.id, table_name)
+    # Process the DataFrame with the selected embedding model
+    return embedding_service.process_dataframe(df, collection.id, table_name, embedding_model_name=embedding_model_name)
 
 
 def _process_document_embeddings(
     collection: DataCollection,
     embedding_service: EmbeddingService,
-    table_name: str
+    table_name: str,
+    embedding_model_name: str = "nomic-embed-text"
 ) -> Dict[str, Any]:
     """Process embeddings for document data (TXT, PDF, DOCX)"""
-    logger.info(f"Processing document embeddings for collection {collection.id}")
+    logger.info(f"Processing document embeddings for collection {collection.id} using model {embedding_model_name}")
     
     # Parse the document
     parser = DocumentParser()
@@ -137,7 +155,7 @@ def _process_document_embeddings(
     
     df = pd.DataFrame(chunk_data)
     
-    # Process the chunks DataFrame
+    # Process the chunks DataFrame with the selected embedding model
     return embedding_service.process_document_chunks(
         df=df,
         collection_id=collection.id,
@@ -148,5 +166,6 @@ def _process_document_embeddings(
             'word_count': parsed_doc.word_count,
             'char_count': parsed_doc.char_count,
             'page_count': parsed_doc.page_count
-        }
+        },
+        embedding_model_name=embedding_model_name
     )

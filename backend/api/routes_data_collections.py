@@ -11,6 +11,7 @@ import mimetypes
 
 from db.session import SessionLocal
 from db.models.data_collection import DataCollection
+from db.models.model import Model
 from tasks.embedding_tasks import process_embeddings_task
 from core.text_chunking import TextChunker, ChunkingMethod
 from core.document_parser import DocumentParser
@@ -58,6 +59,7 @@ async def get_chunking_methods():
 async def upload_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    embedding_model_id: Optional[int] = Form(None),
     chunking_method: Optional[str] = Form(None),
     chunk_size: Optional[int] = Form(None),
     chunk_overlap: Optional[int] = Form(None)
@@ -65,7 +67,9 @@ async def upload_file(
     """
     Upload a file (tabular or document) for processing.
     
-    For document files (txt, pdf, docx), you can specify:
+    - embedding_model_id: ID of the embedding model to use (optional, defaults to nomic-embed-text)
+    
+    For document files (txt, pdf, docx), you can also specify:
     - chunking_method: 'fixed_size', 'sentence', 'paragraph', 'semantic', 'recursive'
     - chunk_size: Size of each chunk (for fixed_size and recursive methods)
     - chunk_overlap: Overlap between chunks
@@ -78,6 +82,21 @@ async def upload_file(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
             )
+
+        # Validate embedding_model_id if provided
+        if embedding_model_id is not None:
+            model = db.query(Model).filter(Model.id == embedding_model_id).first()
+            if not model:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Embedding model with ID {embedding_model_id} not found"
+                )
+            # Check if the model is actually an embedding model
+            if model.family and model.family.tags and 'embedding' not in model.family.tags.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Model {model.name} is not an embedding model"
+                )
 
         # Generate a unique filename
         file_ext = file.filename.rsplit(".", 1)[1].lower()
@@ -103,7 +122,8 @@ async def upload_file(
                     original_filename=file.filename,
                     chunking_method=chunking_method,
                     chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap
+                    chunk_overlap=chunk_overlap,
+                    embedding_model_id=embedding_model_id
                 )
             else:
                 # Process tabular file (csv, xlsx)
@@ -111,7 +131,8 @@ async def upload_file(
                     db=db,
                     file_path=file_path,
                     file_ext=file_ext,
-                    original_filename=file.filename
+                    original_filename=file.filename,
+                    embedding_model_id=embedding_model_id
                 )
 
             # Start background task for embeddings
@@ -164,7 +185,8 @@ async def _process_document_upload(
     original_filename: str,
     chunking_method: Optional[str],
     chunk_size: Optional[int],
-    chunk_overlap: Optional[int]
+    chunk_overlap: Optional[int],
+    embedding_model_id: Optional[int] = None
 ) -> DataCollection:
     """Process a document file (txt, pdf, docx) upload"""
     
@@ -216,7 +238,8 @@ async def _process_document_upload(
         chunking_method=chunking_method,
         chunking_config=chunking_config if chunking_config else None,
         document_metadata=document_metadata,
-        embeddings_status='pending'
+        embeddings_status='pending',
+        embedding_model_id=embedding_model_id
     )
     
     db.add(collection)
@@ -230,7 +253,8 @@ async def _process_tabular_upload(
     db,
     file_path: str,
     file_ext: str,
-    original_filename: str
+    original_filename: str,
+    embedding_model_id: Optional[int] = None
 ) -> DataCollection:
     """Process a tabular file (csv, xlsx) upload"""
     
@@ -253,7 +277,8 @@ async def _process_tabular_upload(
         chunking_method=None,
         chunking_config=None,
         document_metadata=None,
-        embeddings_status='pending'
+        embeddings_status='pending',
+        embedding_model_id=embedding_model_id
     )
 
     db.add(collection)
@@ -267,11 +292,20 @@ def list_collections():
     """List all data collections"""
     with SessionLocal() as db:
         collections = db.query(DataCollection).order_by(DataCollection.created_at.desc()).all()
-        return [{
-            **collection.to_dict(),
-            "embeddings_status": collection.embeddings_status,
-            "embeddings_metadata": collection.embeddings_metadata or {}
-        } for collection in collections]
+        result = []
+        for collection in collections:
+            collection_dict = {
+                **collection.to_dict(),
+                "embeddings_status": collection.embeddings_status,
+                "embeddings_metadata": collection.embeddings_metadata or {}
+            }
+            # Add embedding model name if available
+            if collection.embedding_model:
+                collection_dict["embedding_model_name"] = collection.embedding_model.name
+            elif collection.embeddings_metadata and collection.embeddings_metadata.get('embedding_model'):
+                collection_dict["embedding_model_name"] = collection.embeddings_metadata.get('embedding_model')
+            result.append(collection_dict)
+        return result
 
 @router.get("/collections/{collection_id}/embedding-status")
 def get_embedding_status(collection_id: int):
