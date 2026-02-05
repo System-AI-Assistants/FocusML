@@ -1,9 +1,10 @@
-/* Integration Page Container */
+/* Integration Page Container - full width, matches page-container */
 .integration-container {
-    padding: 24px;
-    background: #f8f9fa;
-    min-height: 100vh;
-    font-family: 'Inter', sans-serif;
+    width: 100%;
+    padding: 24px 32px;
+    background: #f8fafc;
+    min-height: calc(100vh - 64px);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Integration Tabs Styles */

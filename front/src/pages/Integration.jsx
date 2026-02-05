@@ -753,16 +753,14 @@ console.log(data);`;
   ];
 
   return (
-    <div className="integration-container">
+    <div className="integration-container page-container">
+      <div className="page-header">
+        <h2 className="page-header-title">
+          <ApiOutlined style={{ marginRight: 8 }} /> Integration Management
+        </h2>
+        <span className="page-header-subtitle">Manage API keys, widgets, and configure access controls for your assistants</span>
+      </div>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <div>
-          <Title level={2}>
-            <ApiOutlined /> Integration Management
-          </Title>
-          <Paragraph type="secondary">
-            Manage API keys, widgets, and configure access controls for your assistants
-          </Paragraph>
-        </div>
 
         <Tabs
           activeKey={mainTab}

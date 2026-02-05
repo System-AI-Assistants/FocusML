@@ -658,12 +658,13 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="user-page-container">
-      <div className="user-page-header">
-        <Title level={2} style={{ margin: 0 }}>
+    <div className="user-page-container page-container">
+      <div className="user-page-header page-header">
+        <h2 className="page-header-title">
           <TeamOutlined style={{ marginRight: 12 }} />
           User Management
-        </Title>
+        </h2>
+        <span className="page-header-subtitle">Manage users, groups, and permissions</span>
       </div>
       
       <Tabs 

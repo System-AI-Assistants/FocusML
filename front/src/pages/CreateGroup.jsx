@@ -137,22 +137,17 @@ const CreateGroup = () => {
   };
 
   return (
-    <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
-      {/* Breadcrumb */}
+    <div className="page-container">
       <Breadcrumb 
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: 16 }}
         items={[
           { title: <Link to="/users?tab=groups">Groups</Link> },
           { title: 'Create Group' }
         ]}
       />
-
-      {/* Page Header */}
-      <div style={{ marginBottom: 28 }}>
-        <Title level={2} style={{ margin: 0, marginBottom: 8, color: '#0f172a', fontWeight: 700, letterSpacing: '-0.02em' }}>Create New Group</Title>
-        <Text style={{ color: '#64748b', fontSize: 15 }}>
-          Groups define resource limits and feature access for users. Members inherit the group's permissions.
-        </Text>
+      <div className="page-header">
+        <h2 className="page-header-title">Create New Group</h2>
+        <span className="page-header-subtitle">Groups define resource limits and feature access for users. Members inherit the group's permissions.</span>
       </div>
 
       <Form

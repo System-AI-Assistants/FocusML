@@ -189,12 +189,13 @@ function Dashboard() {
   return (
     <div className="page-container">
       <div className="sticky-header">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <div className="page-title-main">
-            {showAll && isAdmin ? 'Dashboard (All Users)' : 'My Dashboard'}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 16 }}>
+          <div className="page-header">
+            <h2 className="page-header-title">{showAll && isAdmin ? 'Dashboard (All Users)' : 'My Dashboard'}</h2>
+            <span className="page-header-subtitle">Overview of your platform activity and statistics</span>
           </div>
           {isAdmin && (
-            <Space style={{ marginLeft: 16 }}>
+            <Space style={{ marginTop: 4 }}>
               <Text type="secondary" style={{ fontSize: 13 }}>Show All</Text>
               <Switch 
                 checked={showAll} 

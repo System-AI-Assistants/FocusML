@@ -298,9 +298,9 @@ function Chat() {
   }
 
   return (
-    <div className="chat-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <div className="chat-header" style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', background: '#fff' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+    <div className="chat-container page-container chat-page" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div className="chat-header" style={{ padding: '16px 32px', borderBottom: '1px solid #f0f0f0', background: '#fff' }}>
+        <div style={{ maxWidth: '100%', margin: 0, width: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <Space>
               {assistant.model_icon ? (

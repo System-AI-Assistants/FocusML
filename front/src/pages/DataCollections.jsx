@@ -936,8 +936,8 @@ const DataCollections = () => {
     return (
         <div className="data-collections-container">
             <div className="page-header">
-                <Title level={3} style={{ marginBottom: 0 }}>Data Collections</Title>
-                <Text type="secondary">Upload and manage your data sources</Text>
+                <h2 className="page-header-title">Data Collections</h2>
+                <span className="page-header-subtitle">Upload and manage your data sources</span>
             </div>
 
             <Card

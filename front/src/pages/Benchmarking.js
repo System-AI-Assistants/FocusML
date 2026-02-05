@@ -144,9 +144,12 @@ function Benchmarking() {
   const liveScore = logItems.length > 0 ? logItems[logItems.length - 1].score : (activeRun?.score ?? 0);
 
   return (
-    <div>
+    <div className="page-container">
+      <div className="page-header">
+        <h2 className="page-header-title">Benchmarking</h2>
+        <span className="page-header-subtitle">Run and compare model performance on datasets</span>
+      </div>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <Title level={2}>Benchmarking</Title>
 
         {activeRun && (
           <Card title={

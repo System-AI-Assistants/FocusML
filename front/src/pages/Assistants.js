@@ -309,23 +309,24 @@ function Assistants() {
   }
 
   return (
-    <div className="models-page-container">
+    <div className="models-page-container page-container">
       <div className="models-page-header">
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Title level={2} style={{ margin: 0 }}>Assistants</Title>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/assistants/add')}>
-              Add Assistant
-            </Button>
+        <div className="page-header-row">
+          <div className="page-header-titles">
+            <h2 className="page-header-title">Assistants</h2>
+            <span className="page-header-subtitle">Create and manage your AI assistants</span>
           </div>
-          <Tabs
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/assistants/add')}>
+            Add Assistant
+          </Button>
+        </div>
+        <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
             items={tabItems}
             type="card"
             className="assistants-tabs"
           />
-        </Space>
       </div>
       <Card className="assistants-table-card">
         <Table

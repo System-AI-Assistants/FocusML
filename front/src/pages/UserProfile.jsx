@@ -62,7 +62,7 @@ function UserProfile() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <Spin size="large" tip="Loading profile..." />
       </div>
     );
@@ -70,7 +70,7 @@ function UserProfile() {
 
   if (error) {
     return (
-      <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
+      <div className="page-container">
         <Result
           status="error"
           title="Failed to load profile"
@@ -147,22 +147,27 @@ function UserProfile() {
   ];
 
   return (
-    <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
-      {/* Top row with back button and breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-        <Button 
-          icon={<ArrowLeftOutlined />} 
-          onClick={() => navigate(-1)}
-          style={{ borderRadius: 10 }}
-        >
-          Back
-        </Button>
-        <Breadcrumb 
-          items={[
-            { title: <Link to="/users">Users</Link> },
-            { title: profile.username }
-          ]}
-        />
+    <div className="page-container">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+        <div className="page-header" style={{ marginBottom: 0 }}>
+          <h2 className="page-header-title">{profile.username}</h2>
+          <span className="page-header-subtitle">User profile and activity</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => navigate(-1)}
+            style={{ borderRadius: 10 }}
+          >
+            Back
+          </Button>
+          <Breadcrumb 
+            items={[
+              { title: <Link to="/users">Users</Link> },
+              { title: profile.username }
+            ]}
+          />
+        </div>
       </div>
 
       {/* Header */}

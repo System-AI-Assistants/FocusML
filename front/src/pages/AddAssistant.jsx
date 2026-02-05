@@ -245,13 +245,18 @@ const AddModel = () => {
     };
 
   return (
-    <>
+    <div className="page-container">
       <Breadcrumb
+        style={{ marginBottom: 16 }}
         items={[
           { title: <a href="/assistants">Assistants</a> },
           { title: 'Add Assistant' },
         ]}
       />
+      <div className="page-header">
+        <h2 className="page-header-title">Add Assistant</h2>
+        <span className="page-header-subtitle">Configure and deploy a new AI assistant</span>
+      </div>
       <div className="add-model-div">
         <Form
           form={form}
@@ -524,7 +529,7 @@ const AddModel = () => {
         >
             {renderInitializationContent()}
         </Modal>
-    </>
+    </div>
   );
 };
 

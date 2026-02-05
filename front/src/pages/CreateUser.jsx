@@ -33,20 +33,17 @@ const CreateUser = () => {
   };
 
   return (
-    <div style={{ padding: '24px 32px', background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
-      {/* Breadcrumb */}
+    <div className="page-container">
       <Breadcrumb 
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: 16 }}
         items={[
           { title: <Link to="/users">User Management</Link> },
           { title: 'Create User' }
         ]}
       />
-
-      {/* Page Header */}
-      <div style={{ marginBottom: 28 }}>
-        <Title level={2} style={{ margin: 0, marginBottom: 8, color: '#0f172a', fontWeight: 700, letterSpacing: '-0.02em' }}>Create New User</Title>
-        <Text style={{ color: '#64748b', fontSize: 15 }}>Add a new user to the platform. They will receive login credentials via Keycloak.</Text>
+      <div className="page-header">
+        <h2 className="page-header-title">Create New User</h2>
+        <span className="page-header-subtitle">Add a new user to the platform. They will receive login credentials via Keycloak.</span>
       </div>
 
       {/* Main Content */}

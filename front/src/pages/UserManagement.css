@@ -1,21 +1,18 @@
 .user-page-container {
+  width: 100%;
   padding: 24px 32px;
   background: #f8fafc;
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .user-page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
-.user-page-header .ant-typography {
-  color: #0f172a;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.user-page-header.page-header .page-header-title {
+  display: flex;
+  align-items: center;
 }
 
 

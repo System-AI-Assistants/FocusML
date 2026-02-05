@@ -1,15 +1,26 @@
 .models-page-container {
-  /*  padding: 24px;*/
-  background: #f8f9fa;
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  width: 100%;
+  padding: 24px 32px;
+  background: #f8fafc;
+  min-height: calc(100vh - 64px);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .models-page-header {
+  /* margin-bottom: 24px; */
+}
+
+.models-page-header .page-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  /* margin-bottom: 24px; */
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.models-page-header .page-header-titles {
+  flex: 1;
+  min-width: 0;
 }
 
 .ant-table-wrapper {
